@@ -30,7 +30,8 @@ from libcloud.utils.py3 import b
 
 import libcloud.compute.ssh
 from libcloud.pricing import get_size_price
-from libcloud.compute.types import NodeState, DeploymentError
+from libcloud.compute.types import NodeState, DeploymentError, ScalingPolicyType,\
+                                   ScalingPolicyOperator
 from libcloud.compute.ssh import SSHClient
 from libcloud.common.base import ConnectionKey
 from libcloud.common.base import BaseDriver
@@ -117,6 +118,141 @@ class UuidMixin(object):
     def uuid(self):
         return self.get_uuid()
 
+class AutoScalingGroup(UuidMixin):
+    """Base class for auto scale group
+    """
+    attrs = ['id', 'name', 'min_size', 'max_size', 'cooldown']
+    # will go under context
+    ex_attrs = ['id', 'region']
+
+    def __init__(self, id, name, min_size, max_size,
+                 cooldown, driver, policies=[],
+                 extra=None):
+
+        self.id = str(id) if id else None
+        self.name = name
+        self.min_size = min_size
+        self.max_size = max_size
+        self.cooldown = cooldown
+        self.policies = policies
+
+        self.driver = driver
+
+        self.extra = extra or {}
+        UuidMixin.__init__(self)
+
+# TODO: define inherited class to hold this
+    def to_dict(self):
+        data = {}
+        data['context'] = {}
+        for a in self.attrs:
+            data[a] = getattr(self, a, None)
+        for e in self.ex_attrs:
+            data['context'][e] = getattr(self, 'extra', {}).get(e)
+        return data
+    
+    def __repr__(self):
+        return (('<AutoScalingGroup: id=%s, name=%s, min_size=%s, max_size=%s, '
+                 'cooldown=%s, provider=%s>')
+                % (self.id, self.name, self.min_size, self.max_size,
+                   self.cooldown, self.driver.name))
+
+
+class ScalingPolicy(UuidMixin):
+    """Base class for scaling policy
+    """
+    attrs = ['id', 'name', 'scaling_adjustment', 'adjustment_type']
+
+    def __init__(self, id, name, scaling_adjustment,
+                 driver, adjustment_type=ScalingPolicyType.CHANGE_IN_CAPACITY,
+                 extra=None):
+        """
+        :param name: Policy name
+        :type name: str
+        
+        :param adjustment_type: How to adjust group size
+        :type adjustment_type: ScalingPolicyType
+
+        :param scaling_adjustment: adjustment amount
+        :type scaling_adjustment: int
+
+        """
+        self.id = str(id) if id else None
+        self.name = name
+        self.adjustment_type = adjustment_type
+        self.scaling_adjustment = scaling_adjustment
+        
+        self.alarm = None
+
+        self.driver = driver
+        self._auto_scale_group_id = None
+        self.extra = extra or {}
+
+        UuidMixin.__init__(self)
+
+# TODO: define inherited class to hold this
+    def to_dict(self):
+        data = {}
+        for a in self.attrs:
+            data[a] = getattr(self, a, None)
+
+        return data
+
+    def __repr__(self):
+        return (('<ScalingPolicy: id=%s, name=%s, adjustment_type=%s, '
+                 'scaling_adjustment=%s, provider=%s>')
+                % (self.id, self.name, self.adjustment_type, 
+                   self.scaling_adjustment, self.driver.name))
+        
+
+class Alarm(object):
+    """Base class for alarm triggering
+    """
+    attrs = ['id', 'metric_name', 'period', 'operator', 'threshold',
+             'statistic']
+
+    def __init__(self, id, metric_name,
+                 period, operator, threshold,
+                 driver, extra=None):
+        """
+        :param metric_name: Metric name
+        :type metric_name: str
+        
+        :param period: Time sample period
+        :type period: int
+
+        :param operator: '<' or '>'
+        :type operator: str
+        
+        :param threshold: Threshold to trigger this alarm
+        :type threshold: int
+        """
+        self.id = str(id) if id else None
+        self.metric_name = metric_name
+        self.period = period
+        self.operator = operator
+        self.threshold = threshold
+        self.statistic = 'AVG'
+
+        self.driver = driver
+        self.extra = extra or {}
+        self._auto_scale_policy_id = None
+
+# TODO: define inherited class to hold this
+    def to_dict(self):
+        data = {}
+        for a in self.attrs:
+            data[a] = getattr(self, a, None)
+
+        return data
+
+
+    def __repr__(self):
+        return (('<Alarm: id=%s, metric_name=%s, period=%s, '
+                 'operator=%s, threshold=%s, statistic=%s, provider=%s>')
+                % (self.id, self.metric_name, self.period, 
+                   self.operator, self.threshold, 
+                   self.statistic, self.driver.name))
 
 class Node(UuidMixin):
     """
@@ -649,6 +785,38 @@ class NodeDriver(BaseDriver):
         super(NodeDriver, self).__init__(key=key, secret=secret, secure=secure,
                                          host=host, port=port,
                                          api_version=api_version, **kwargs)
+
+    def create_auto_scale_group(self, **kwargs):
+        raise NotImplementedError(
+            'create_auto_scale_group not implemented for this driver')
+
+    def list_auto_scale_groups(self):
+        raise NotImplementedError(
+            'list_auto_scale_groups not implemented for this driver')
+
+    def get_auto_scale_group_instances(self, group_id):
+        raise NotImplementedError(
+            'get_auto_scale_group_instances not implemented for this driver')
+
+    def get_auto_scale_group(self, group_id):
+        raise NotImplementedError(
+            'get_auto_scale_group not implemented for this driver')
+
+    def create_policy(self, **kwargs):
+        raise NotImplementedError(
+            'create_policy not implemented for this driver')
+
+    def create_alarm(self, **kwargs):
+        raise NotImplementedError(
+            'create_alarm not implemented for this driver')
+
+    def delete_auto_scale_group(self, group):
+        raise NotImplementedError(
+            'delete_auto_scale_group not implemented for this driver')
+
+    def get_image_by_name(self, image_name):
+        raise NotImplementedError(
+            'get_image_by_name not implemented for this driver')
 
     def list_nodes(self):
         """

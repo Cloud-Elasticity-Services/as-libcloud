@@ -85,6 +85,17 @@ class ProviderError(LibcloudError):
     def __repr__(self):
         return repr(self.value)
 
+class ResourceNotFoundError(LibcloudError):
+    """Exception for the cases where specific resource can not 
+    be found
+    """
+    pass
+
+class ResourceExistsError(LibcloudError):
+    """Exception for the cases where specific resource already 
+    exists
+    """
+    pass
 
 class InvalidCredsError(ProviderError):
     """Exception used when invalid credentials are used on a provider."""

@@ -36,7 +36,7 @@ from libcloud.utils.publickey import get_pubkey_comment
 from libcloud.utils.iso8601 import parse_date
 from libcloud.common.aws import AWSBaseResponse, SignedAWSConnection
 from libcloud.common.types import (InvalidCredsError, MalformedResponseError,
-                                   LibcloudError)
+                                   LibcloudError, ResourceNotFoundError)
 from libcloud.compute.providers import Provider
 from libcloud.compute.base import Node, NodeDriver, NodeLocation, NodeSize
 from libcloud.compute.base import NodeImage, StorageVolume, VolumeSnapshot
@@ -2076,6 +2076,29 @@ class BaseEC2NodeDriver(NodeDriver):
             self.connection.request(self.path, params=params).object
         )
         return images
+
+    def get_image_by_name(self, image_name):
+        """
+        Get an image based on an image_name
+
+        :param image_name: Image name
+        :type image_name: ``str``
+
+        :return: A NodeImage object
+        :rtype: :class:`NodeImage`
+
+        """
+        params = {'Action': 'DescribeImages'}
+        params.update({'Filter.1.Name': 'name', 'Filter.1.Value.1': image_name})
+        images = self._to_images(
+            self.connection.request(self.path, params=params).object
+        )
+        try:
+            return images[0]
+        except IndexError:
+            raise ResourceNotFoundError('Image: \'%s\' not found' % image_name,
+                                        driver=self)
+
 
     def get_image(self, image_id):
         """

@@ -23,18 +23,21 @@ try:
 except ImportError:
     crypto = False
 
+from libcloud.utils.misc import find
 from libcloud.common.base import ConnectionUserAndKey
 from libcloud.common.xmlrpc import XMLRPCResponse, XMLRPCConnection
-from libcloud.common.types import InvalidCredsError, LibcloudError
-from libcloud.compute.types import Provider, NodeState
+from libcloud.common.types import InvalidCredsError, LibcloudError, ResourceNotFoundError
+from libcloud.compute.types import Provider, NodeState, ScalingPolicyType,\
+    ScalingPolicyOperator
 from libcloud.compute.base import NodeDriver, Node, NodeLocation, NodeSize, \
-    NodeImage, KeyPair
+    NodeImage, KeyPair, AutoScalingGroup, ScalingPolicy, Alarm
 from libcloud.compute.types import KeyPairDoesNotExistError
 
 DEFAULT_DOMAIN = 'example.com'
 DEFAULT_CPU_SIZE = 1
 DEFAULT_RAM_SIZE = 2048
 DEFAULT_DISK_SIZE = 100
+DEFAULT_TIMEOUT = 12000
 
 DATACENTERS = {
     'hou02': {'country': 'US'},
@@ -145,6 +148,7 @@ class SoftLayerResponse(XMLRPCResponse):
     defaultExceptionCls = SoftLayerException
     exceptions = {
         'SoftLayer_Account': InvalidCredsError,
+        'SoftLayer_Exception_ObjectNotFound': ResourceNotFoundError
     }
 
 
@@ -204,6 +208,17 @@ class SoftLayerNodeDriver(NodeDriver):
         - recurringMonths   : The number of months in which the recurringFee
          will be incurred.
     """
+
+    
+    operator_mapping = {ScalingPolicyOperator.GE: '>', 
+                     ScalingPolicyOperator.GT: '>',
+                     ScalingPolicyOperator.LE: '<',
+                     ScalingPolicyOperator.LT: '<'}
+
+    scaleType_mapping = {ScalingPolicyType.CHANGE_IN_CAPACITY: 'RELATIVE', 
+                         ScalingPolicyType.EXACT_CAPACITY: 'ABSOLUTE',
+                         ScalingPolicyType.PERCENT_CHANGE_IN_CAPACITY: 'PERCENT'}
+
     connectionCls = SoftLayerConnection
     name = 'SoftLayer'
     website = 'http://www.softlayer.com/'
@@ -498,6 +513,21 @@ class SoftLayerNodeDriver(NodeDriver):
             driver=self.connection.driver,
         )
 
+    def list_images_private(self, location=None):
+        
+        mask = { 'id': '',
+            'accountId': '',
+            'name': '',
+            'globalIdentifier': '',
+            'parentId': ''
+            }
+        
+        result = self.connection.request(
+            'SoftLayer_Account', 'getPrivateBlockDeviceTemplateGroups', object_mask=mask
+        ).object
+        print 'RESULT: %s' % result
+        return result
+
     def list_sizes(self, location=None):
         return [self._to_size(id, s) for id, s in SL_TEMPLATES.items()]
 
@@ -558,3 +588,285 @@ class SoftLayerNodeDriver(NodeDriver):
             raise KeyPairDoesNotExistError(name, self)
         else:
             return int(key_id[0]['id'])
+
+
+    def get_auto_scale_group_instances(self, group_id):
+        mask = { 'virtualGuest': {
+            'billingItem': '',
+            'powerState': '',
+            'operatingSystem': {'passwords': ''},
+            'provisionDate': ''
+            }
+                }
+        res = self.connection.request('SoftLayer_Scale_Group', 
+                                      'getVirtualGuestMembers',
+                                       id=group_id).object
+
+        nodes = []
+        for r in res:
+            # NOTE: r[id]  is ID of virtual guest member
+            #(not instance itself)
+            res_node = self.connection.request(
+                'SoftLayer_Scale_Member_Virtual_Guest',
+                'getVirtualGuest', id=r['id'],
+                object_mask=mask
+            ).object
+
+            nodes.append(self._to_node(res_node))
+
+        return nodes
+
+    def get_auto_scale_group(self, group_id):
+        res = self.connection.request('SoftLayer_Scale_Group', 
+                                       'getObject', id=group_id).object
+        group = self._to_scaling_group(res)
+
+        return group
+
+    def list_auto_scale_groups(self):
+        res = self.connection.request('SoftLayer_Account', 
+                                       'getScaleGroups').object
+        return self._to_scaling_groups(res)
+
+    def get_group_status(self, group_id):
+        res = self.connection.request('SoftLayer_Scale_Group',
+                                      'getStatus', id=group_id).object
+        return res['name']
+
+    def _to_scaling_groups(self, res):
+        groups = [self._to_scaling_group(grp) for grp in res]
+        return groups
+
+    def _to_scaling_group(self, grp):
+        print 'Turn group=%s' % grp
+        
+        grp_id  = grp['id']
+        name = grp['name']
+        cooldown = grp['cooldown']
+        min_size = grp['minimumMemberCount']
+        max_size = grp['maximumMemberCount']
+        
+        extra = {}
+        extra['id'] = grp_id
+        extra['region'] = 'softlayer' # getattr(self, 'region', '')
+        extra['regionalGroupId'] = grp['regionalGroupId']
+        extra['suspendedFlag'] = grp['suspendedFlag']
+        extra['terminationPolicyId'] = grp['terminationPolicyId']
+        
+        return AutoScalingGroup(id=grp_id, name=name, cooldown=cooldown,
+                                min_size=min_size, max_size=max_size,
+                                driver=self.connection.driver,
+                                extra=extra)
+
+    def create_auto_scale_group(self, **kwargs):
+
+        # retrieve all available regions to extract the
+        # matched id
+        ex_region_id = None
+        res = self.connection.request(
+            'SoftLayer_Location_Group_Regional',
+            'getAllObjects').object
+        print 'Location groups: %s' % res
+        for r in res:
+            if r['name'] == kwargs['ex_region']:
+                ex_region_id = r['id']
+        if not ex_region_id:
+            raise SoftLayerException('Unable to find region id for region: %s' % \
+                                     kwargs['ex_region'])
+        
+        template = {
+        'hostname': kwargs['ex_instance_name'],
+        'notes': kwargs['ex_instance_name'],
+        'domain': 'softlayer.com',
+        'startCpus': 1,
+        'maxMemory': 2048,
+        'networkComponents': [{'maxSpeed': 10}],
+        'hourlyBillingFlag': 'false',
+        'blockDeviceTemplateGroup': kwargs['image'].extra, # this is the entire template_group...
+        'localDiskFlag': 'true',
+        'datacenter': {'name': kwargs['ex_datacenter']},
+        'userData': [{'value': kwargs['ex_user_data']}]
+        }
+
+        def _wait_for_creation(group_id):
+            # 5 seconds
+            POLL_INTERVAL = 5
+        
+            end = time.time() + DEFAULT_TIMEOUT
+            completed = False
+            while time.time() < end and not completed:
+                status_name = self.get_group_status(group_id)
+                if status_name != 'Active':
+                    print 'Group status not active [status=%(status)s]. Waiting....' % {'status': status_name}
+                    time.sleep(POLL_INTERVAL)
+                else:
+                    completed = True
+        
+            if not completed:
+                raise LibcloudError('Group creation did not complete in %s seconds' %
+                                    (DEFAULT_TIMEOUT))
+            
+        data = {}
+        data['name'] = kwargs['name']
+        data['maximumMemberCount'] = kwargs['max_size']
+        data['minimumMemberCount'] = kwargs['min_size']
+        data['cooldown'] = kwargs['cooldown']
+
+        data['regionalGroupId'] = ex_region_id
+        data['suspendedFlag'] = False
+        # 'OLDEST'
+        data['terminationPolicyId'] = 3
+        data['virtualGuestMemberTemplate'] = template
+
+        res = self.connection.request('SoftLayer_Scale_Group', 
+                                       'createObject',
+                                       data).object
+        print 'Successfully created group %(id)s' % {'id': res['id']}
+        
+        _wait_for_creation(res['id'])
+        
+        res = self.connection.request('SoftLayer_Scale_Group', 
+                                       'getObject', id=res['id']).object
+        group = self._to_scaling_group(res)
+
+        return group
+
+
+    def _to_scaling_policy(self, plc):
+        print 'Turn policy=%s' % plc
+
+        plc_id = plc['id']
+        name = plc['name']
+
+        adj_type = None
+        adjustment_type = None
+        scaling_adjustment = None
+
+        if plc.get('scaleActions', []):
+                    
+            adj_type = plc['scaleActions'][0]['scaleType']
+            adjustment_type= find(self.scaleType_mapping,
+                            lambda e: self.scaleType_mapping[e] == adj_type)
+            if not adjustment_type:
+                raise Exception('Illegal adjustment_type value [adj_type=%(adj_type)s]' \
+                                % {'adj_type': adj_type})
+            scaling_adjustment = plc['scaleActions'][0]['amount']
+        
+        return ScalingPolicy(id=plc_id, name=name, adjustment_type=adjustment_type,
+                                scaling_adjustment=scaling_adjustment,
+                                driver=self.connection.driver)
+
+
+    def create_policy(self, group_id, **kwargs):
+
+        data = {}
+        data['name'] = kwargs['name']
+        data['scaleGroupId'] = int(group_id)
+ 
+        policy_action = {}
+        policy_action['typeId'] = 1 # 'SCALE'
+        policy_action['scaleType'] = \
+                           self.scaleType_mapping[kwargs['adjustment_type']]
+        policy_action['amount'] = kwargs['scaling_adjustment']
+
+        data['scaleActions'] = [policy_action]
+        
+        print 'Creating policy with an action %(policy)s ...' % {'policy': data}
+        res = self.connection.request('SoftLayer_Scale_Policy',
+                                       'createObject', data).object
+        print 'Successfully created policy %(id)s' % {'id': res['id']}
+
+        res = self.connection.request('SoftLayer_Scale_Policy',
+                                       'getObject', id=res['id']).object
+        policy = self._to_scaling_policy(res)
+
+        return policy
+
+    def _to_alarm(self, alrm):
+
+        print 'Turn alarm=%s' % alrm
+        
+        alrm_id = alrm['id']
+
+        metric_name = None
+        operator = None
+        period = None
+        threshold =None
+
+        if alrm.get('watches', []):
+        
+            metric_name = alrm['watches'][0]['metric'] 
+            op = alrm['watches'][0]['operator']
+            operator = find(self.operator_mapping,
+                            lambda e: self.operator_mapping[e] == op)
+            if not operator:
+                raise Exception('Illegal operator value [op=%(op)s]' \
+                                % {'op': op})
+    
+            period = alrm['watches'][0]['period']
+            threshold = alrm['watches'][0]['value']
+
+        return Alarm(id=alrm_id, metric_name=metric_name, operator=operator,
+                                period=period, threshold=threshold,
+                                driver=self.connection.driver)
+
+    def create_alarm(self, policy_id, **kwargs):
+
+        data = {}
+        data['typeId'] = 3 # 'RESOURCE_USE'
+        data['scalePolicyId'] = policy_id
+         
+        trigger_watch = {}
+        trigger_watch['algorithm'] = 'EWMA'
+        trigger_watch['metric'] = kwargs['metric_name']
+        trigger_watch['operator'] = \
+                           self.operator_mapping[kwargs['operator']]
+        trigger_watch['period'] = kwargs['period']
+        trigger_watch['value'] = kwargs['threshold']
+ 
+        data['watches'] = [trigger_watch]
+
+        print 'Creating trigger with a watch %(trigger)s ...' % {'trigger': data}
+        res = self.connection.request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
+                                       'createObject', data).object
+        print 'Successfully created trigger %(id)s' % {'id': res['id']}
+
+        res = self.connection.request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
+                                       'getObject', id=res['id']).object
+        alarm = self._to_alarm(res)
+
+        return alarm
+
+    def delete_auto_scale_group(self, group):
+        
+        def _wait_for_deletion(group_id):
+            # 5 seconds
+            POLL_INTERVAL = 5
+        
+            end = time.time() + DEFAULT_TIMEOUT
+            completed = False
+            while time.time() < end and not completed:
+                try:
+                    self.get_auto_scale_group(group_id)
+                    print 'Group exists. Waiting....'
+                    time.sleep(POLL_INTERVAL)
+                except ResourceNotFoundError:
+                    # for now treat this as not found
+                    completed = True
+            if not completed:
+                raise LibcloudError('Operation did not complete in %s seconds' %
+                                    (DEFAULT_TIMEOUT))
+
+        self.connection.request(
+            'SoftLayer_Scale_Group', 'forceDeleteObject', id=group.id).object
+
+        _wait_for_deletion(group.id)
+        
+        return True
+
+    def get_all_regional_groups(self):
+        
+        res = self.connection.request(
+            'SoftLayer_Location_Group_Regional', 'getAllObjects').object
+        print res
+

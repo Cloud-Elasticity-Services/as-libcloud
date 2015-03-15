@@ -79,6 +79,8 @@ class Provider(object):
     :cvar PROFIT_BRICKS: ProfitBricks driver.
     """
     DUMMY = 'dummy'
+    AWS_AUTOSCALE = 'aws_autoscale_us_east'
+    AWS_CW_AUTOSCALE = 'aws_cw_autoscale_us_east'
     EC2 = 'ec2_us_east'
     RACKSPACE = 'rackspace'
     GCE = 'gce'
@@ -129,6 +131,22 @@ class Provider(object):
     HPCLOUD = 'hpcloud'
     KILI = 'kili'
 
+    AWS_AUTOSCALE_US_EAST= 'aws_autoscale_us_east'
+    AWS_AUTOSCALE_EU_WEST = 'aws_autoscale_eu_west'
+    AWS_AUTOSCALE_US_WEST = 'aws_autoscale_us_west'
+    AWS_AUTOSCALE_US_WEST_OREGON = 'aws_autoscale_us_west_oregon'
+    AWS_AUTOSCALE_AP_SOUTHEAST = 'aws_autoscale_ap_southeast'
+    AWS_AUTOSCALE_AP_SOUTHEAST2 = 'aws_autoscale_ap_southeast_2'
+    AWS_AUTOSCALE_AP_NORTHEAST = 'aws_autoscale_ap_northeast'
+    AWS_AUTOSCALE_SA_EAST = 'aws_autoscale_sa_east'
+    
+    AWS_CW_AUTOSCALE_US_EAST = 'aws_cw_autoscale_us_east'
+    AWS_CW_AUTOSCALE_US_WEST = 'aws_cw_autoscale_us_west'
+    AWS_CW_AUTOSCALE_US_WEST_OREGON = 'aws_cw_autoscale_us_west_oregon'
+    AWS_CW_AUTOSCALE_EU_WEST = 'aws_cw_autoscale_eu_west'
+    AWS_CW_AUTOSCALE_AP_SOUTHEAST = 'aws_cw_autoscale_ap_southeast'
+    AWS_CW_AUTOSCALE_AP_SOUTHEAST2 = 'aws_cw_autoscale_ap_southeast_2'
+
     # Deprecated constants which are still supported
     EC2_US_EAST = 'ec2_us_east'
     EC2_EU = 'ec2_eu_west'  # deprecated name
@@ -177,6 +195,20 @@ OLD_CONSTANT_TO_NEW_MAPPING = {
     Provider.RACKSPACE_NOVA_ORD: Provider.RACKSPACE
 }
 
+class ScalingPolicyType(object):
+
+    CHANGE_IN_CAPACITY = '0'
+    EXACT_CAPACITY = '1'
+    PERCENT_CHANGE_IN_CAPACITY = '2'
+
+class ScalingPolicyOperator(object):
+
+    LT = '0'
+    LE = '1'
+    GT = '2'
+    GE = '3'
+    
+    VALID_OPS = [LT, LE, GT, GE]
 
 class NodeState(object):
     """
