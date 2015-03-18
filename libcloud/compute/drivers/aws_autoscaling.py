@@ -519,16 +519,3 @@ class CloudWatchEuropeDriver(CloudWatchDriver):
     name = 'Amazon CloudWatch (eu-central-1)'
     _region = 'eu-west-1'
 
-
-if __name__ == '__main__':
-
-    import libcloud
-    from libcloud.compute.providers import get_driver
-    libcloud.security.VERIFY_SSL_CERT = False
-
-    cls = get_driver(Provider.AWS_AUTOSCALE_US_WEST_OREGON)
-    driver = cls('AKIAIGF5OEY25FMKT55A', 'sqIzwlNlQ0CNQKLjHvQ735RZcgNKkLxU7ex6r+5H')
-
-    cw_cls = get_driver(Provider.AWS_CW_AUTOSCALE_US_WEST_OREGON)
-    cw_driver = cw_cls('AKIAIGF5OEY25FMKT55A', 'sqIzwlNlQ0CNQKLjHvQ735RZcgNKkLxU7ex6r+5H')
-    driver.get_auto_scale_group('foo')
