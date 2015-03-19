@@ -50,7 +50,7 @@ Scaling capabilities.
     >>> api_key = ....
     >>>driver = cls(username, api_key)
 
-    # Create a group
+    # Create an auto scale group
     >>> group = driver.create_auto_scale_group(name="test",min_size=1,
                    max_size=5, cooldown=300,
                    image=driver.list_images()[0])
