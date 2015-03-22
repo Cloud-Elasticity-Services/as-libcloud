@@ -113,8 +113,9 @@ class LoadBalancer(object):
         return self.driver.destroy_balancer(balancer=self)
 
     def __repr__(self):
-        return ('<LoadBalancer: id=%s, name=%s, state=%s>' % (self.id,
-                self.name, self.state))
+        return ('<LoadBalancer: id=%s, name=%s, state=%s, ip=%s, '
+                'port=%s>' % (self.id, self.name, self.state, self.ip,
+                              self.port))
 
 
 class Algorithm(object):
