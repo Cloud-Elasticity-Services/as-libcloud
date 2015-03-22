@@ -18,7 +18,7 @@ from __future__ import with_statement
 from libcloud.utils.py3 import httplib
 
 from libcloud.compute.base import NodeImage, AutoScaleAlarm, AutoScalePolicy,\
-                                  AutoScaleGroup
+                                  AutoScaleGroup, NodeSize
 from libcloud.compute.types import AutoScaleAdjustmentType, AutoScaleOperator,\
                                    AutoScaleMetric
 
@@ -66,10 +66,26 @@ class AutoScaleTests(LibcloudTestCase):
 
         image = NodeImage(id='ami-9a562df2', name='', driver=self.as_driver)
         location = self.ec2_driver.list_locations()[0]
+        size = NodeSize('t2.micro', None, None, None, None, None, None)
         group = self.as_driver.\
         create_auto_scale_group(name='libcloud-testing',
                                 min_size=1, max_size=5, cooldown=300,
-                                image=image, location=location)
+                                image=image, location=location, size=size)
+
+        self.assertEqual(group.name, 'libcloud-testing')
+        self.assertEqual(group.cooldown, 300)
+        self.assertEqual(group.min_size, 1)
+        self.assertEqual(group.max_size, 5)
+
+    def test_create_auto_scale_group_with_ex_instance_name(self):
+
+        image = NodeImage(id='ami-9a562df2', name='', driver=self.as_driver)
+        location = self.ec2_driver.list_locations()[0]
+        group = self.as_driver.\
+        create_auto_scale_group(name='libcloud-testing',
+                                min_size=1, max_size=5, cooldown=300,
+                                image=image, location=location,
+                                ex_instance_name='test-node')
 
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)

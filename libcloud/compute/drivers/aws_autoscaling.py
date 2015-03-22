@@ -368,6 +368,13 @@ class AutoScaleDriver(NodeDriver):
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
 
+        :keyword    size: Size definition for group members instances.
+        :type       size: :class:`.NodeSize`
+
+        :keyword location: Which availability zone to create the members in.
+                           Availability zone must be within driver's region.
+        :type location: :class:`.NodeLocation`
+
         :keyword    ex_launch_configuration_name: Launch configuration name.
         :type       ex_launch_configuration_name: ``str``
 
@@ -376,14 +383,6 @@ class AutoScaleDriver(NodeDriver):
 
         :keyword    ex_userdata: User data to be injected to group members.
         :type       ex_userdata: ``str``
-
-        :keyword    ex_flavor: Instance type flavor to create group members.
-                               with.
-        :type       ex_flavor:   ``str``
-
-        :keyword    ex_avail_zone: The availability zone that the members will
-                                   be created in.
-        :type       ex_avail_zone:   ``str``
 
         """
         DEFAULT_FLAVOR = 't2.micro'
@@ -400,8 +399,8 @@ class AutoScaleDriver(NodeDriver):
         if 'ex_userdata' in kwargs:
             template['UserData'] = base64.b64encode(kwargs['ex_userdata'])
 
-        if 'ex_flavor' in kwargs:
-            template['InstanceType'] = kwargs['ex_flavor']
+        if kwargs.get('size'):
+            template['InstanceType'] = kwargs['size'].id
         else:
             template['InstanceType'] = DEFAULT_FLAVOR
   

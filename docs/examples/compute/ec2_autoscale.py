@@ -8,6 +8,7 @@ ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
 
 IMAGE_ID = 'ami-5c120b19'
+SIZE_ID = 't2.small'
 
 cls = get_driver(Provider.EC2_US_WEST)
 driver = cls(ACCESS_ID, SECRET_KEY)
@@ -20,12 +21,16 @@ cw_driver = cw_cls(ACCESS_ID, SECRET_KEY)
 
 # Here we select image
 images = driver.list_images()
-
 image = [i for i in images if i.id == IMAGE_ID][0]
 
+sizes = driver.list_sizes()
+size = [s for s in sizes if s.id == SIZE_ID][0]
+
+location = driver.list_locations()[1]
 group = as_driver.create_auto_scale_group(name='libcloud-group',
                        min_size=2, max_size=5, cooldown=300,
-                       image=image)
+                       image=image, size=size, location=location,
+                       ex_instance_name='test-node')
 pprint(group)
 
 policy = as_driver.create_auto_scale_policy(group=group,

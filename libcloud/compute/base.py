@@ -1398,6 +1398,12 @@ class NodeDriver(BaseDriver):
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
 
+        :keyword    size: Size definition for group members instances.
+        :type       size: :class:`.NodeSize`
+
+        :keyword location: Which location to create the members in.
+        :type location: :class:`.NodeLocation`
+
         :return: The newly created group.
         :rtype: :class:`.AutoScaleGroup`
         """
