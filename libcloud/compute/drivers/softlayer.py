@@ -553,8 +553,8 @@ class SoftLayerNodeDriver(NodeDriver):
         :keyword    size: Size definition for group members instances.
         :type       size: :class:`.NodeSize`
 
-        :param location: Which data center to create the members in. Datacenter
-                         must be within the given region.
+        :keyword location: Which data center to create the members in. Datacenter
+                           must be within the given region.
         :type location: :class:`.NodeLocation`
 
         :keyword    ex_region: The region the group will be created in.
