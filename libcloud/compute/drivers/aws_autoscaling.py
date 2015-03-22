@@ -17,7 +17,7 @@ import base64
 import time
 
 from libcloud.utils.misc import find
-from libcloud.utils.xml import fixxpath, findtext
+from libcloud.utils.xml import fixxpath, findattr, findtext, findall
 from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse
 from libcloud.common.types import LibcloudError, ResourceNotFoundError, \
                                   ResourceExistsError
@@ -347,7 +347,7 @@ class AutoScaleDriver(NodeDriver):
                                             port=port, **kwargs)
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                image, **kwargs):
+                                image, balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
@@ -432,6 +432,9 @@ class AutoScaleDriver(NodeDriver):
             data['Tags.member.1.Key'] = 'Name'
             data['Tags.member.1.Value'] = kwargs['ex_instance_name']
             data['Tags.member.1.PropagateAtLaunch'] = 'true'
+
+        if balancer:
+            data['LoadBalancerNames.member.1'] = balancer.name
 
         configuration = template
         configuration.update({'Action': 'CreateLaunchConfiguration'})
@@ -624,10 +627,10 @@ class AutoScaleDriver(NodeDriver):
                              namespace=AUTOSCALE_NAMESPACE)
         max_size = findtext(element=element, xpath='MaxSize',
                              namespace=AUTOSCALE_NAMESPACE)
-        
+
         extra = {}
         extra['region'] = self.region_name
-
+        extra['balancer_names'] = self._get_balancer_names(element)
         extra['launch_configuration_name'] =\
                              findtext(element=element, 
                                       xpath='LaunchConfigurationName',
@@ -668,7 +671,22 @@ class AutoScaleDriver(NodeDriver):
                              scaling_adjustment=int(scaling_adjustment),
                              driver=self.connection.driver)
 
+    def _get_balancer_names(self, element):
+        """
+        Parse load balancer names from the provided element and return a
+        list of therse.
 
+        :rtype: ``list`` of ``str``
+        """
+        balancer_names = []
+        for item in findall(element=element, xpath='LoadBalancerNames',
+                            namespace=AUTOSCALE_NAMESPACE):
+            b_n = findtext(element=item, xpath='member',
+                           namespace=AUTOSCALE_NAMESPACE)
+            if b_n is not None:
+                balancer_names.append(b_n)
+
+        return balancer_names
 
 class AutoScaleUSWestDriver(AutoScaleDriver):
     """

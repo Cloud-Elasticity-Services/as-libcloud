@@ -1377,7 +1377,7 @@ class NodeDriver(BaseDriver):
             'delete_key_pair not implemented for this driver')
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                image=None, **kwargs):
+                                image=None, balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
         automatically. Some of the keyward arguments are driver specific
@@ -1398,11 +1398,14 @@ class NodeDriver(BaseDriver):
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
 
+        :param balancer: The load balancer to attach.
+        :type balancer: :class:`.LoadBalancer`
+
         :keyword    size: Size definition for group members instances.
         :type       size: :class:`.NodeSize`
 
-        :keyword location: Which location to create the members in.
-        :type location: :class:`.NodeLocation`
+        :keyword    location: Which location to create the members in.
+        :type       location: :class:`.NodeLocation`
 
         :return: The newly created group.
         :rtype: :class:`.AutoScaleGroup`

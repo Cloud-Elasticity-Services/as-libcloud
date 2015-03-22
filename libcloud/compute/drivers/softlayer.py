@@ -529,7 +529,7 @@ class SoftLayerNodeDriver(NodeDriver):
         return self._to_autoscale_groups(res)
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                image=None, **kwargs):
+                                image=None, balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
@@ -550,19 +550,25 @@ class SoftLayerNodeDriver(NodeDriver):
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
 
+        :param balancer: The load balancer to attach this group.
+        :type balancer: :class:`.LoadBalancer`
+
         :keyword    size: Size definition for group members instances.
         :type       size: :class:`.NodeSize`
 
-        :keyword location: Which data center to create the members in. Datacenter
-                           must be within the given region.
-        :type location: :class:`.NodeLocation`
-
-        :keyword    ex_region: The region the group will be created in.
-        :type       ex_region: ``str``
+        :keyword    location: Which data center to create the members in.
+                              Datacenter must be within the given region.
+        :type       location: :class:`.NodeLocation`
 
         :keyword    ex_datacenter: The datacenter that the group members will
                                    be created in.
         :type       ex_datacenter:   ``str``
+
+        :keyword    ex_region: The region the group will be created in.
+        :type       ex_region: ``str``
+
+        :keyword    ex_service_port: Service port used by the group members.
+        :type       ex_service_port: ``int``
 
         :keyword    ex_instance_name: The name of the group members instances.
         :type       ex_instance_name: ``str``
@@ -710,9 +716,17 @@ class SoftLayerNodeDriver(NodeDriver):
         data['terminationPolicyId'] = 3
         data['virtualGuestMemberTemplate'] = template
 
+        if balancer:
+            if not datacenter:
+                raise ValueError('location or ex_datacenter must be supplied'
+                                 ' when supplying loadbalancer')
+
+            ex_instance_port = kwargs.get('ex_instance_port', 80)
+            data['loadBalancers'] = [self._create_balancer_template(balancer,
+                                     ex_instance_port)]
+
         res = self.connection.request('SoftLayer_Scale_Group', 
-                                       'createObject',
-                                       data).object
+                                      'createObject', data).object
 
         _wait_for_creation(res['id'])
 
@@ -721,6 +735,7 @@ class SoftLayerNodeDriver(NodeDriver):
         group = self._to_autoscale_group(res)
 
         return group
+
 
     def list_auto_scale_group_members(self, group):
         """
@@ -950,6 +965,48 @@ class SoftLayerNodeDriver(NodeDriver):
 
         return True
 
+    def _create_balancer_template(self, balancer, ex_instance_port):
+
+        lb_service = 'SoftLayer_Network_Application_Delivery_Controller_LoadBalancer_'\
+        'VirtualIpAddress'
+
+        lb_mask = {
+                'virtualServers': {
+                    'serviceGroups': {
+                    },
+                    'scaleLoadBalancers': {
+                    }
+                }
+        }
+
+        # get the loadbalancer
+        lb_res = self.connection.request(lb_service, 'getObject',
+                                         object_mask=lb_mask, id=balancer.id).\
+                                         object
+        # find the vs with matching balancer port
+        # we need vs id for the scale template to 'connect' it
+        vss = lb_res.get('virtualServers', [])
+        vs = find(vss, lambda vs: vs['port'] == balancer.port)
+        if not vs:
+            raise LibcloudError(value='No virtualServers found for'\
+                                ' Softlayer loadbalancer with port: %s' %\
+                                balancer.port, driver=self)
+
+        scale_lb_template = {
+            # connect it to the matched vs
+            'virtualServerId': vs['id'],
+            'port': ex_instance_port,
+            # protocol_id, algorithm_id get returned by list_balancers
+            'routingTypeId': 2, #TODO: balancer.extra['protocol_id'],
+            'routingMethodId': 10, #TODO: balancer.extra['algorithm_id'],
+            # DEFAULT health check
+            'healthCheck': {
+                'healthCheckTypeId': 21
+            }
+        }
+        return scale_lb_template
+
+
     def _get_auto_scale_group(self, group_name):
 
         groups = self.list_auto_scale_groups()
@@ -1047,4 +1104,3 @@ class SoftLayerNodeDriver(NodeDriver):
                               operator=operator, period=period,
                               threshold=int(threshold),
                               driver=self.connection.driver)
-
