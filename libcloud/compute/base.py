@@ -124,7 +124,6 @@ class UuidMixin(object):
     def uuid(self):
         return self.get_uuid()
 
-# TODO: define state and its mappings into specific providers
 class AutoScaleGroup(UuidMixin):
     """Base class for auto scale group
     """

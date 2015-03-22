@@ -689,7 +689,7 @@ class SoftLayerNodeDriver(NodeDriver):
             completed = False
             while time.time() < end and not completed:
                 status_name = self._get_group_status(group_id)
-                if status_name != 'Active':
+                if status_name != 'ACTIVE':
                     time.sleep(POLL_INTERVAL)
                 else:
                     completed = True
@@ -962,7 +962,7 @@ class SoftLayerNodeDriver(NodeDriver):
     def _get_group_status(self, group_id):
         res = self.connection.request('SoftLayer_Scale_Group',
                                       'getStatus', id=group_id).object
-        return res['name']
+        return res['keyName']
 
     def _to_autoscale_policy(self, plc):
 
@@ -1004,6 +1004,7 @@ class SoftLayerNodeDriver(NodeDriver):
 
         extra = {}
         extra['id'] = grp_id
+        extra['state'] = grp['status']['keyName']
         extra['region'] = 'softlayer' # TODO: set with region name
         extra['regionalGroupId'] = grp['regionalGroupId']
         extra['suspendedFlag'] = grp['suspendedFlag']
