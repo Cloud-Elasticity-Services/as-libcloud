@@ -16,8 +16,8 @@
 import base64
 import time
 
-from libcloud.utils.misc import find
-from libcloud.utils.xml import fixxpath, findtext
+from libcloud.utils.misc import find, reverse_dict
+from libcloud.utils.xml import fixxpath, findtext, findall
 from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse
 from libcloud.common.types import LibcloudError, ResourceNotFoundError, \
                                   ResourceExistsError
@@ -27,7 +27,7 @@ from libcloud.compute.base import NodeDriver, AutoScaleGroup, AutoScalePolicy,\
 from libcloud.compute.drivers.ec2 import EC2NodeDriver, EC2Connection,\
                                   EC2Response
 from libcloud.compute.types import AutoScaleAdjustmentType, AutoScaleOperator,\
-                                   AutoScaleMetric
+                                   AutoScaleMetric, AutoScaleTerminationPolicy
 
 AUTOSCALE_API_VERSION = '2011-01-01'
 AUTOSCALE_NAMESPACE = 'http://autoscaling.amazonaws.com/doc/%s/' % \
@@ -320,6 +320,16 @@ class AutoScaleDriver(NodeDriver):
                                                     'PercentChangeInCapacity'
     }
 
+    _VALUE_TO_TERMINATION_POLICY_MAP = {
+        'OldestInstance': AutoScaleTerminationPolicy.OLDEST_INSTANCE,
+        'NewestInstance': AutoScaleTerminationPolicy.NEWEST_INSTANCE,
+        'ClosestToNextInstanceHour': AutoScaleTerminationPolicy.\
+                                     CLOSEST_TO_NEXT_CHARGE,
+        'Default': AutoScaleTerminationPolicy.DEFAULT
+    }
+
+    _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(\
+                                       _VALUE_TO_TERMINATION_POLICY_MAP)
 
     def __init__(self, key, secret=None, secure=True, host=None, port=None,
                  region='us-east-1', **kwargs):
@@ -347,7 +357,10 @@ class AutoScaleDriver(NodeDriver):
                                             port=port, **kwargs)
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                image, **kwargs):
+                                image,
+                                termination_policies=\
+                                [AutoScaleTerminationPolicy.OLDEST_INSTANCE],
+                                **kwargs):
         """
         Create a new auto scale group.
 
@@ -364,6 +377,10 @@ class AutoScaleDriver(NodeDriver):
 
         :param cooldown: Group cooldown (in seconds).
         :type cooldown: ``int``
+
+        :param termination_policies: Termination policy for this group.
+        :type termination_policies: value or list of values within
+                                  :class:`AutoScaleTerminationPolicy`
 
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
@@ -432,6 +449,11 @@ class AutoScaleDriver(NodeDriver):
             data['Tags.member.1.Key'] = 'Name'
             data['Tags.member.1.Value'] = kwargs['ex_instance_name']
             data['Tags.member.1.PropagateAtLaunch'] = 'true'
+
+        if termination_policies:
+            for p in range(len(termination_policies)):
+                data['TerminationPolicies.member.%d' % (p + 1,)] =\
+                    self._termination_policy_to_value(termination_policies[p])
 
         configuration = template
         configuration.update({'Action': 'CreateLaunchConfiguration'})
@@ -624,7 +646,8 @@ class AutoScaleDriver(NodeDriver):
                              namespace=AUTOSCALE_NAMESPACE)
         max_size = findtext(element=element, xpath='MaxSize',
                              namespace=AUTOSCALE_NAMESPACE)
-        
+        termination_policies = self._get_termination_policies(element)
+
         extra = {}
         extra['region'] = self.region_name
 
@@ -635,6 +658,7 @@ class AutoScaleDriver(NodeDriver):
         
         return AutoScaleGroup(id=group_id, name=name, cooldown=int(cooldown),
                                 min_size=int(min_size), max_size=int(max_size),
+                                termination_policies=termination_policies,
                                 driver=self.connection.driver, extra=extra)
     
 
@@ -668,6 +692,38 @@ class AutoScaleDriver(NodeDriver):
                              scaling_adjustment=int(scaling_adjustment),
                              driver=self.connection.driver)
 
+    def _get_termination_policies(self, element):
+        """
+        Parse termination policies from the provided element and return a
+        list of these.
+
+        :rtype: ``list`` of ``str``
+        """
+        termination_policies = []
+        for item in findall(element=element, xpath='TerminationPolicies',
+                            namespace=AUTOSCALE_NAMESPACE):
+
+            t_p = findtext(element=item, xpath='member',
+                           namespace=AUTOSCALE_NAMESPACE)
+            if t_p is not None:
+                termination_policies.append(self.\
+                                            _value_to_termination_policy(t_p))
+
+        return termination_policies
+    
+    def _value_to_termination_policy(self, value):
+        try:
+            return self._VALUE_TO_TERMINATION_POLICY_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _termination_policy_to_value(self, termination_policy):
+        try:
+            return self._TERMINATION_POLICY_TO_VALUE_MAP[termination_policy]
+        except KeyError:
+            raise LibcloudError(value='Invalid termination policy: %s'
+                                % (termination_policy), driver=self)
 
 
 class AutoScaleUSWestDriver(AutoScaleDriver):

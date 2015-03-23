@@ -217,10 +217,34 @@ class AutoScaleAdjustmentType(object):
     PERCENT_CHANGE_IN_CAPACITY = 'PERCENT_CHANGE_IN_CAPACITY'
 
 
+class AutoScaleTerminationPolicy(object):
+    """
+    The policy to be used for automatic removal of members from an auto scale
+    group. Policy determines which members are chosen first for removal.
+
+    :cvar OLDEST_INSTANCE: Terminates the oldest instance in the group.
+    :cvar NEWEST_INSTANCE: Terminates the newest instance in the group.
+    :cvar CLOSEST_TO_NEXT_CHARGE: Terminates instances that are closest to the
+    next billing charge.
+    :cvar DEFAULT: Default termination policy.
+
+    """
+    OLDEST_INSTANCE = 0
+    NEWEST_INSTANCE = 1
+    CLOSEST_TO_NEXT_CHARGE = 2
+    DEFAULT = 3
+
+
 class AutoScaleOperator(object):
     """
     The arithmetic operation to use when comparing the statistic
     and threshold.
+
+    :cvar LT: Less than.
+    :cvar LE: Less equals.
+    :cvar GT: Greater than.
+    :cvar GE: Greater equals.
+
     """
 
     LT = 'LT'

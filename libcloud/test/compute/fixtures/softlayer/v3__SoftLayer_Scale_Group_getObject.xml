@@ -405,6 +405,31 @@
     </value>
    </member>
    <member>
+    <name>terminationPolicy</name>
+    <value>
+     <struct>
+      <member>
+       <name>id</name>
+       <value>
+        <int>1</int>
+       </value>
+      </member>
+      <member>
+       <name>keyName</name>
+       <value>
+        <string>CLOSEST_TO_NEXT_CHARGE</string>
+       </value>
+      </member>
+      <member>
+       <name>name</name>
+       <value>
+        <string>Closest to next charge</string>
+       </value>
+      </member>
+     </struct>
+    </value>
+   </member>
+   <member>
     <name>virtualGuestAssets</name>
     <value>
      <array>

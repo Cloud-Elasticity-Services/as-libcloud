@@ -23,15 +23,17 @@ try:
 except ImportError:
     crypto = False
 
+from libcloud.common.types import LibcloudError
 from libcloud.common.softlayer import SoftLayerConnection, SoftLayerException,\
                                       SoftLayerObjectDoesntExist
 from libcloud.compute.types import Provider, NodeState, AutoScaleOperator,\
-                                   AutoScaleAdjustmentType, AutoScaleMetric
+                                   AutoScaleAdjustmentType, AutoScaleMetric,\
+                                   AutoScaleTerminationPolicy
 from libcloud.compute.base import NodeDriver, Node, NodeLocation, NodeSize, \
     NodeImage, KeyPair, AutoScaleGroup, AutoScalePolicy, AutoScaleAlarm
 from libcloud.compute.types import KeyPairDoesNotExistError
 
-from libcloud.utils.misc import find
+from libcloud.utils.misc import find, reverse_dict
 
 DEFAULT_DOMAIN = 'example.com'
 DEFAULT_CPU_SIZE = 1
@@ -163,6 +165,16 @@ class SoftLayerNodeDriver(NodeDriver):
     metric_mapping = {
         AutoScaleMetric.CPU_UTIL: 'host.cpu.percent'
     }
+
+    _VALUE_TO_TERMINATION_POLICY_MAP = {
+        'OLDEST': AutoScaleTerminationPolicy.OLDEST_INSTANCE,
+        'NEWEST': AutoScaleTerminationPolicy.NEWEST_INSTANCE,
+        'CLOSEST_TO_NEXT_CHARGE': AutoScaleTerminationPolicy.\
+                                     CLOSEST_TO_NEXT_CHARGE
+    }
+
+    _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(\
+                                       _VALUE_TO_TERMINATION_POLICY_MAP)
 
     connectionCls = SoftLayerConnection
     name = 'SoftLayer'
@@ -524,11 +536,21 @@ class SoftLayerNodeDriver(NodeDriver):
             return int(key_id[0]['id'])
 
     def list_auto_scale_groups(self):
+
+        mask = {
+                'scaleGroups': {
+                    'terminationPolicy': ''
+                }
+        }
+
         res = self.connection.request('SoftLayer_Account', 
-                                       'getScaleGroups').object
+                                       'getScaleGroups', object_mask=mask).\
+                                       object
         return self._to_autoscale_groups(res)
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
+                                termination_policies=\
+                                AutoScaleTerminationPolicy.OLDEST_INSTANCE,
                                 image=None, **kwargs):
         """
         Create a new auto scale group.
@@ -546,6 +568,11 @@ class SoftLayerNodeDriver(NodeDriver):
 
         :param cooldown: Group cooldown (in seconds).
         :type cooldown: ``int``
+
+        :param termination_policies: Termination policy for this group.
+        Note: Softlayer support single policy so type is a single value
+        :type termination_policies: value within
+                                  :class:`AutoScaleTerminationPolicy`
 
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
@@ -706,8 +733,16 @@ class SoftLayerNodeDriver(NodeDriver):
 
         data['regionalGroupId'] = ex_region_id
         data['suspendedFlag'] = False
-        # 'OLDEST'
-        data['terminationPolicyId'] = 3
+
+        if termination_policies:
+            termination_policy = termination_policies[0] if \
+                                 isinstance(termination_policies, list) else\
+                                 termination_policies
+            data['terminationPolicy'] = {
+                'keyName': \
+                         self._termination_policy_to_value(termination_policy)
+            }
+
         data['virtualGuestMemberTemplate'] = template
 
         res = self.connection.request('SoftLayer_Scale_Group', 
@@ -715,9 +750,13 @@ class SoftLayerNodeDriver(NodeDriver):
                                        data).object
 
         _wait_for_creation(res['id'])
+        mask = {
+            'terminationPolicy': ''
+        }
 
         res = self.connection.request('SoftLayer_Scale_Group', 
-                                       'getObject', id=res['id']).object
+                                       'getObject', object_mask=mask,
+                                       id=res['id']).object
         group = self._to_autoscale_group(res)
 
         return group
@@ -1002,6 +1041,10 @@ class SoftLayerNodeDriver(NodeDriver):
         min_size = grp['minimumMemberCount']
         max_size = grp['maximumMemberCount']
 
+        sl_tp = self._value_to_termination_policy\
+                                    (grp['terminationPolicy']['keyName'])
+        termination_policies = [sl_tp]
+
         extra = {}
         extra['id'] = grp_id
         extra['state'] = grp['status']['keyName']
@@ -1012,6 +1055,7 @@ class SoftLayerNodeDriver(NodeDriver):
         
         return AutoScaleGroup(id=grp_id, name=name, cooldown=cooldown,
                                 min_size=min_size, max_size=max_size,
+                                termination_policies=termination_policies,
                                 driver=self.connection.driver,
                                 extra=extra)
 
@@ -1047,4 +1091,18 @@ class SoftLayerNodeDriver(NodeDriver):
                               operator=operator, period=period,
                               threshold=int(threshold),
                               driver=self.connection.driver)
+
+    def _value_to_termination_policy(self, value):
+        try:
+            return self._VALUE_TO_TERMINATION_POLICY_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _termination_policy_to_value(self, termination_policy):
+        try:
+            return self._TERMINATION_POLICY_TO_VALUE_MAP[termination_policy]
+        except KeyError:
+            raise LibcloudError(value='Invalid termination policy: %s'
+                                % (termination_policy), driver=self)
 

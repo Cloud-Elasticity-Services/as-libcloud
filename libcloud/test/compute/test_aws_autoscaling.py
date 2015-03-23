@@ -70,12 +70,14 @@ class AutoScaleTests(LibcloudTestCase):
         group = self.as_driver.\
         create_auto_scale_group(name='libcloud-testing',
                                 min_size=1, max_size=5, cooldown=300,
-                                image=image, location=location, size=size)
+                                image=image, location=location, size=size,
+                                termination_policies=[2])
 
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
         self.assertEqual(group.min_size, 1)
         self.assertEqual(group.max_size, 5)
+        self.assertEqual(group.termination_policies, [2])
 
     def test_create_auto_scale_group_with_ex_instance_name(self):
 
@@ -85,12 +87,14 @@ class AutoScaleTests(LibcloudTestCase):
         create_auto_scale_group(name='libcloud-testing',
                                 min_size=1, max_size=5, cooldown=300,
                                 image=image, location=location,
+                                termination_policies=[2],
                                 ex_instance_name='test-node')
 
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
         self.assertEqual(group.min_size, 1)
         self.assertEqual(group.max_size, 5)
+        self.assertEqual(group.termination_policies, [2])
 
     def test_list_auto_scale_groups(self):
 
@@ -99,14 +103,14 @@ class AutoScaleTests(LibcloudTestCase):
 
     def test_delete_group(self):
 
-        group = AutoScaleGroup('123','libcloud-testing', None, None, None,
+        group = AutoScaleGroup('123','libcloud-testing', None, None, None, [0],
                                self.as_driver)
         AutoScaleMockHttp.type = 'DELETE'
         self.as_driver.delete_auto_scale_group(group)
 
     def test_create_auto_scale_policy(self):
 
-        group = AutoScaleGroup('123','libcloud-testing', None, None, None,
+        group = AutoScaleGroup('123','libcloud-testing', None, None, None, [0],
                                self.as_driver)
 
         policy = self.as_driver.\
@@ -123,7 +127,7 @@ class AutoScaleTests(LibcloudTestCase):
 
     def test_list_auto_scale_policies(self):
 
-        group = AutoScaleGroup('123','libcloud-testing', None, None, None,
+        group = AutoScaleGroup('123','libcloud-testing', None, None, None, [0],
                                self.as_driver)
         policies = self.as_driver.list_auto_scale_policies(group=group)
         self.assertEqual(len(policies), 1)
