@@ -50,7 +50,8 @@ Scaling capabilities.
     >>> api_key = "Your SOFTLAYER api key"
     >>> driver = cls(username, api_key)
 
-    # Create an auto scale group
+    # Create an auto scale group 
+    # (note: create is a long syncronious operation, be patient)
     >>> group = driver.create_auto_scale_group(name="test",min_size=1,
                    max_size=5, cooldown=300,
                    image=driver.list_images()[0])
