@@ -127,8 +127,8 @@ class UuidMixin(object):
 class AutoScaleGroup(UuidMixin):
     """Base class for auto scale group
     """
-    def __init__(self, id, name, min_size, max_size, cooldown, driver,
-                 extra=None):
+    def __init__(self, id, name, min_size, max_size, cooldown,
+                 termination_policies, driver, extra=None):
         """
         :param name: name.
         :type name: ``str``
@@ -142,13 +142,16 @@ class AutoScaleGroup(UuidMixin):
         :param cooldown: Group cooldown (in seconds).
         :type cooldown: ``int``
 
+        :param termination_policies: Termination policies for this group.
+        :type termination_policies: array of values within
+                                  :class:`AutoScaleTerminationPolicy`
         """
         self.id = str(id) if id else None
         self.name = name
         self.min_size = min_size
         self.max_size = max_size
         self.cooldown = cooldown
-
+        self.termination_policies = termination_policies
         self.driver = driver
 
         self.extra = extra or {}
@@ -156,9 +159,9 @@ class AutoScaleGroup(UuidMixin):
 
     def __repr__(self):
         return (('<AutoScaleGroup: id=%s, name=%s, min_size=%s, max_size=%s, '
-                 'cooldown=%s, provider=%s>')
+                 'cooldown=%s, termination_policies=%s, provider=%s>')
                 % (self.id, self.name, self.min_size, self.max_size,
-                   self.cooldown, self.driver.name))
+                   self.cooldown, self.termination_policies, self.driver.name))
 
 
 class AutoScalePolicy(UuidMixin):
@@ -1377,7 +1380,8 @@ class NodeDriver(BaseDriver):
             'delete_key_pair not implemented for this driver')
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                image=None, balancer=None, **kwargs):
+                                termination_policy, image=None,
+                                balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
         automatically. Some of the keyward arguments are driver specific
@@ -1394,6 +1398,10 @@ class NodeDriver(BaseDriver):
 
         :param cooldown: Group cooldown (in seconds).
         :type cooldown: ``int``
+
+        :param termination_policy: Termination policy for this group.
+        :type termination_policy: value within
+                                  :class:`AutoScaleTerminationPolicy`
 
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
