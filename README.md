@@ -46,11 +46,12 @@ Scaling capabilities.
     >>> cls = get_driver(Provider.SOFTLAYER)
 
     # Use account username and api key
-    >>> username = ....
-    >>> api_key = ....
-    >>>driver = cls(username, api_key)
+    >>> username = "Your SOFTLAYER user name"
+    >>> api_key = "Your SOFTLAYER api key"
+    >>> driver = cls(username, api_key)
 
-    # Create an auto scale group
+    # Create an auto scale group 
+    # (note: create is a long syncronious operation, be patient)
     >>> group = driver.create_auto_scale_group(name="test",min_size=1,
                    max_size=5, cooldown=300,
                    image=driver.list_images()[0])
@@ -81,5 +82,5 @@ Scaling capabilities.
     # Delete alarm
     >>> driver.delete_auto_scale_alarm(alarm)
     
-    
+
 [libcloud]: https://libcloud.readthedocs.org/
