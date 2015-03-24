@@ -32,7 +32,7 @@ from libcloud.utils.py3 import b
 import libcloud.compute.ssh
 from libcloud.pricing import get_size_price
 from libcloud.compute.types import NodeState, StorageVolumeState,\
-    DeploymentError
+    DeploymentError, AutoScaleTerminationPolicy
 from libcloud.compute.ssh import SSHClient
 from libcloud.common.base import ConnectionKey
 from libcloud.common.base import BaseDriver
@@ -1380,7 +1380,7 @@ class NodeDriver(BaseDriver):
             'delete_key_pair not implemented for this driver')
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                termination_policy, image=None,
+                                termination_policies, image=None,
                                 balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
@@ -1399,8 +1399,8 @@ class NodeDriver(BaseDriver):
         :param cooldown: Group cooldown (in seconds).
         :type cooldown: ``int``
 
-        :param termination_policy: Termination policy for this group.
-        :type termination_policy: value within
+        :param termination_policies: Termination policies for this group.
+        :type termination_policy: value or list of values within
                                   :class:`AutoScaleTerminationPolicy`
 
         :param image: The image to create the member with.

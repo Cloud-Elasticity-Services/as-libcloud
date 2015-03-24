@@ -41,7 +41,7 @@ Scaling capabilities.
 
     $ python
 
-    >>> from libcloud.compute.types import Provider
+    >>> from libcloud.compute.types import Provider, AutoScaleMetric, AutoScaleTerminationPolicy, AutoScaleAdjustmentType, AutoScaleOperator
     >>> from libcloud.compute.providers import get_driver
     >>> cls = get_driver(Provider.SOFTLAYER)
 
@@ -52,26 +52,25 @@ Scaling capabilities.
 
     # Create an auto scale group 
     # (note: create is a long syncronious operation, be patient)
-    >>> group = driver.create_auto_scale_group(name="test",min_size=1,
-                   max_size=5, cooldown=300,
-                   image=driver.list_images()[0])
+    >>> group = driver.create_auto_scale_group(name="test", min_size=1,
+            max_size=5, cooldown=300, image=driver.list_images()[0],
+            termination_policies=[AutoScaleTerminationPolicy.OLDEST_INSTANCE])
 
     # List auto scale groups
     >>> driver.list_auto_scale_groups()
 
     # Create policy that when triggered, increments group membership 
     # by one
-    >>> policy=driver.create_auto_scale_policy(group,
-           name='test-policy',
-           adjustment_type='CHANGE_IN_CAPACITY',
-           scaling_adjustment=1)
+    >>> policy=driver.create_auto_scale_policy(group, name='test-policy',
+            adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
+            scaling_adjustment=1)
 
     # Add an alarm to policy.
     # Alarm triggers the policy when cpu utilization 
     # of group members is beyond 80%
     >>> alarm = driver.create_auto_scale_alarm(name='my_alarm',
-           policy=policy, metric_name='CPU_UTIL', operator='GT',
-           threshold=80, period=120)
+            policy=policy, metric_name=AutoScaleMetric.CPU_UTIL,
+            operator=AutoScaleOperator.GT, threshold=80, period=120)
 
     # List alarms for this policy
     >>> driver.list_auto_scale_alarms(policy)
