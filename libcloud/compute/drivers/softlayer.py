@@ -1036,9 +1036,6 @@ class SoftLayerNodeDriver(NodeDriver):
             # connect it to the matched vs
             'virtualServerId': vs['id'],
             'port': ex_instance_port,
-            # protocol_id, algorithm_id get returned by list_balancers
-            'routingTypeId': 2, #TODO: balancer.extra['protocol_id'],
-            'routingMethodId': 10, #TODO: balancer.extra['algorithm_id'],
             # DEFAULT health check
             'healthCheck': {
                 'healthCheckTypeId': 21
