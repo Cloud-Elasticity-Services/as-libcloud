@@ -81,5 +81,59 @@ Scaling capabilities.
     # Delete alarm
     >>> driver.delete_auto_scale_alarm(alarm)
     
+### Native APIs
+
+Following is a list of native API services that the extension uses
+for the below operations supported by the cloud providers.
+
+List groups
+
+- Amazon: DescribeAutoScalingGroups
+- Softlayer: SoftLayer_Account::getScaleGroups
+
+Create group
+
+- Amazon: CreateAutoScalingGroup
+- Softlayer: SoftLayer_Scale_Group::createObject
+
+Delete group
+
+- Amazon: DeleteAutoScalingGroup
+- Softlayer: SoftLayer_Scale_Group::forceDeleteObject
+
+List group members
+
+- Amazon: DescribeInstances (with a filter of 'tag:aws:autoscaling:groupName')
+- Softlayer: SoftLayer_Scale_Group::getVirtualGuestMembers
+
+List policies
+
+- Amazon: DescribePolicies
+- Softlayer: SoftLayer_Scale_Group::getPolicies
+
+Create policy
+
+- Amazon: PutScalingPolicy
+- Softlayer: SoftLayer_Scale_Policy::createObject
+
+Delete policy
+
+- Amazon: DeletePolicy
+- Softlayer: SoftLayer_Scale_Policy::deleteObject
+
+List alarms
+
+- Amazon: DescribeAlarms
+- Softlayer: SoftLayer_Scale_Policy::getResourceUseTriggers
+
+Create alarm
+
+- Amazon: PutMetricAlarm
+- Softlayer: SoftLayer_Scale_Policy_Trigger_ResourceUse::createObject
+
+Delete alarm
+
+- Amazon: DeleteAlarms
+- Softlayer: SoftLayer_Scale_Policy_Trigger_ResourceUse::deleteObject
 
 [libcloud]: https://libcloud.readthedocs.org/
