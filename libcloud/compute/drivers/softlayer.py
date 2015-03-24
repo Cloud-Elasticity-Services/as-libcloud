@@ -549,9 +549,9 @@ class SoftLayerNodeDriver(NodeDriver):
         return self._to_autoscale_groups(res)
 
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                termination_policies=\
+                                image=None, termination_policies=\
                                 AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-                                image=None, **kwargs):
+                                **kwargs):
         """
         Create a new auto scale group.
 
