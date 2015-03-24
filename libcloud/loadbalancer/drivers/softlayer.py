@@ -19,7 +19,7 @@ __all__ = [
     'SoftlayerLBDriver'
 ]
 
-from libcloud.utils.misc import reverse_dict, find
+from libcloud.utils.misc import find, reverse_dict
 from libcloud.loadbalancer.types import MemberCondition, State
 from libcloud.loadbalancer.base import Algorithm, Driver, LoadBalancer,\
                                        DEFAULT_ALGORITHM, Member
@@ -37,6 +37,8 @@ class SoftlayerLBDriver(Driver):
     _VALUE_TO_ALGORITHM_MAP = {
         'ROUND_ROBIN': Algorithm.ROUND_ROBIN,
         'LEAST_CONNECTIONS': Algorithm.LEAST_CONNECTIONS,
+        'SHORTEST_RESPONSE': Algorithm.SHORTEST_RESPONSE,
+        'PERSISTENT_IP': Algorithm.PERSISTENT_IP
     }
 
     _ALGORITHM_TO_VALUE_MAP = reverse_dict(_VALUE_TO_ALGORITHM_MAP)
@@ -66,6 +68,9 @@ class SoftlayerLBDriver(Driver):
         mask = {
             'adcLoadBalancers': {
                 'ipAddress': '',
+                'loadBalancerHardware': {
+                    'datacenter': ''
+                },
                 'virtualServers': {
                     'serviceGroups': {
                         'routingMethod': '',
@@ -84,6 +89,7 @@ class SoftlayerLBDriver(Driver):
         }
         res = self.connection.request('SoftLayer_Account',
             'getAdcLoadBalancers', object_mask=mask).object
+
         return [self._to_balancer(lb) for lb in res]
 
     def list_protocols(self):
@@ -94,10 +100,31 @@ class SoftlayerLBDriver(Driver):
         """
         return ['dns', 'ftp', 'http', 'https', 'tcp', 'udp']
 
-    def ex_add_service_group(self, balancer, allocation=100, port=80,
-                          protocol='http', algorithm=DEFAULT_ALGORITHM):
-        """Adds a new service group to the load balancer."""
 
+    def ex_add_service_group(self, balancer, port=80,
+                          protocol='http', algorithm=DEFAULT_ALGORITHM,
+                          ex_allocation=100):
+        """
+        Adds a new service group to the load balancer.
+
+        :param balancer: The loadbalancer
+        :type  balancer: :class:`LoadBalancer`
+
+        :param port: Port of the service group, defaults to 80
+        :type  port: ``int``
+
+        :param protocol: Loadbalancer protocol, defaults to http.
+        :type  protocol: ``str``
+
+        :param algorithm: Load balancing algorithm, defaults to
+                            Algorithm.ROUND_ROBIN
+        :type  algorithm: :class:`Algorithm`
+
+        :param ex_allocation: The percentage of the total connection 
+                              allocations to allocate for this group.
+        :type  ex_allocation: ``int``
+
+        """
         _types = self._get_routing_types()
         _methods = self._get_routing_methods()
 
@@ -106,148 +133,90 @@ class SoftlayerLBDriver(Driver):
             raise LibcloudError(value='Invalid protocol %s' % protocol,
                                 driver=self)
 
-        method = find(_methods, lambda m: m['keyname'] == \
-                      self._algorithm_to_value(algorithm))
-        if not method:
+        value = self._algorithm_to_value(algorithm)
+        meth = find(_methods, lambda m: m['keyname'] == value)
+        if not meth:
             raise LibcloudError(value='Invalid algorithm %s' % algorithm,
                                 driver=self)
 
         mask = {
                 'virtualServers': {
-                    'serviceGroups': {
-                    }
+                    'serviceGroups': ''
+#                     {
+#                         'routingMethod': '',
+#                         'routingType': '',
+#                     }
                 }
         }
 
         service_template = {
             'port': port,
-            'allocation': allocation,
+            'allocation': ex_allocation,
             'serviceGroups': [
                 {
                     'routingTypeId': rt['id'],
-                    'routingMethodId': method['id']
+                    'routingMethodId': meth['id']
+
+# NOTE: the following does not work..
+#                     'routingType': {
+#                         'keyname': protocol.upper()
+#                     },
+#                     'routingMethod': {
+#                         'keyname': self._algorithm_to_value(algorithm)
+#                     }
                 }
             ]
         }
 
+        # get balancer vip object
         res = self.connection.request(lb_service, 'getObject',
                                       object_mask=mask, id=balancer.id).object
-
         res['virtualServers'].append(service_template)
-        self.connection.request(lb_service, 'editObject', res,
-                                id=balancer.id)
-        # TODO: return something?
+        self.connection.request(lb_service, 'editObject', res, id=balancer.id)
+        return True
 
-    def ex_add_scale_balancer(self, balancer, group, allocation=100,
-                              lb_port=80, port=80, protocol='http',
-                              algorithm=DEFAULT_ALGORITHM):
+    def ex_delete_service_group(self, balancer, port):
         """
-        Adds a new scale balancer configuration for the given scale group
-        Note: balancer should not be set with service groups. This call
-        creates such one based on given parameters and ties it to a given
-        scale group.
+        Delete a service group from the load balancer
+
+        :type  balancer: :class:`LoadBalancer`
+
+        :param port: Port of the service group to be removed. 
+        Note: In Softlayer, loadbalancer can not have two service groups with
+        same port.
+        :type  port: ``int``
+
         """
-        #TODO: doc that lb_port is balancer port
-        # and port is service port
-        _types = self._get_routing_types()
-        _methods = self._get_routing_methods()
-        _hc_types = self._get_health_checks_types()
+        def _locate_group_service(res, port):
 
-        # TODO: make this configurable
-        hc_type = _hc_types[0]
+            vs = None
 
-        rt = find(_types, lambda t: t['keyname'] == protocol.upper())
-        if not rt:
-            raise LibcloudError(value='Invalid protocol %s' % protocol,
-                                driver=self)
+            for vs in res['virtualServers']:
+                if vs['port'] == port:
+                    return vs
 
-        method = find(_methods, lambda m: m['keyname'] == \
-                      self._algorithm_to_value(algorithm))
-        if not method:
-            raise LibcloudError(value='Invalid algorithm %s' % algorithm,
-                                driver=self)
-        lb_mask = {
+        mask = {
                 'virtualServers': {
                     'serviceGroups': {
-                    },
-                    'scaleLoadBalancers': {
                     }
                 }
         }
-
-        # get the loadbalancer
-        lb_res = self.connection.request(lb_service, 'getObject',
-                                         object_mask=lb_mask, id=balancer.id).\
-                                         object
-        print lb_res
-        service_template = {
-            'port': lb_port, # loadbalancer listening port
-            'allocation': allocation,
-            'serviceGroups': [
-                {
-                'routingTypeId': rt['id'],
-                 'routingMethodId': method['id']
-                 }
-            ],
-        }
-
-        lb_res['virtualServers'].append(service_template)
-        # add newly vs with the service group
-        self.connection.request(lb_service, 'editObject', lb_res,
-                                id=balancer.id)
-
-        # get loadbalancer with the vs added
-        lb_res = self.connection.request(lb_service, 'getObject',
-                                         object_mask=lb_mask, id=balancer.id).\
-                                         object
-
-        grp_mask = {
-                    'loadBalancers': {
-                    }
-                }
-
-        # get the scale group
-        res = self.connection.request('SoftLayer_Scale_Group', 'getObject',
-                                      object_mask=grp_mask, id=group.id).object
-        print res
-        vs_id = lb_res['virtualServers'][0]['id']
-        scale_lb_template = {
-            'virtualServerId': vs_id, # id of newly added loadbalancer vs
-            'port': port,
-            'routingTypeId': rt['id'],
-            'routingMethodId': method['id'],
-            'healthCheck': {
-                'healthCheckTypeId': hc_type['id']
-            }
-        }
-
-        res['loadBalancers'].append(scale_lb_template)
-
-        # add the newly scale loadbalancer to the group
-        self.connection.request('SoftLayer_Scale_Group', 'editObject', res,
-                                id=group.id)
-
-        # TODO: return something?
-
-    def ex_remove_scale_balancer(self, balancer, group):
-        """Detach balancer from the scale group and remove the associated
-        service group.
-        """
-        pass
-
-    def ex_list_scale_balancers(self, group):
-        mask = {
-            'loadBalancers': {
-                'virtualServer': {
-                    'virtualIpAddress': {'ipAddress': ''},
-                    'port': ''
-                }
-            }
-        }
-        res = self.connection.request('SoftLayer_Scale_Group',
-                                      'getLoadBalancers',
-                                      object_mask=mask, id=group.id).object        
         
+        # get balancer vip object
+        res = self.connection.request(lb_service, 'getObject',
+                                      object_mask=mask, id=balancer.id).object
+        vs = _locate_group_service(res, port)
+        if vs:
+            vs_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
+            'LoadBalancer_VirtualServer'
+            self.connection.request(vs_service, 'deleteObject', id=vs['id']).\
+                                    object
+        else:
+            raise LibcloudError(value='No service_group found for port: %s' %\
+                                port, driver=self)
+
+        return True
+
     def _get_routing_types(self):
 
         svc_rtype = 'SoftLayer_Network_Application_Delivery_Controller_'\
@@ -272,15 +241,31 @@ class SoftlayerLBDriver(Driver):
     def _to_balancer(self, lb):
         ipaddress = lb['ipAddress']['ipAddress']
 
-        # dealing with first vs
-        vs = lb['virtualServers'][0] if lb['virtualServers'] else None
-
-        port = vs['port'] if vs else 0
-
         extra = {}
         extra['ssl_active'] = lb['sslActiveFlag']
         extra['ssl_enabled'] = lb['sslEnabledFlag']
         extra['ha'] = lb['highAvailabilityFlag']
+        extra['datacenter'] = lb['loadBalancerHardware'][0]\
+                              ['datacenter']['name']
+
+        vs = lb['virtualServers'][0] if lb['virtualServers'] else None
+
+        if vs:
+            port = vs['port']
+            if vs['serviceGroups']:
+                srvgrp = vs['serviceGroups'][0]
+                routing_method = srvgrp['routingMethod']['keyname']
+                routing_type = srvgrp['routingType']['keyname']
+                try:
+                    extra['algorithm'] = self.\
+                                        _value_to_algorithm(routing_method)
+                except:
+                    pass
+                extra['protocol'] = routing_type.lower()
+
+        if not vs:
+            port = 0
+
         balancer = LoadBalancer(
             id=lb['id'],
             name='',
@@ -291,9 +276,9 @@ class SoftlayerLBDriver(Driver):
             extra=extra
         )
 
-        # dealing with first scale/group configuration
+        # populate members
         if vs:
-            if 'scaleLoadBalancers' in vs and vs['scaleLoadBalancers']:
+            if vs['scaleLoadBalancers']:
                 scale_lb = vs['scaleLoadBalancers'][0]
                 member_port = scale_lb['port']
                 scale_grp_id = scale_lb['scaleGroupId']
@@ -302,22 +287,16 @@ class SoftlayerLBDriver(Driver):
                                        AutoScaleGroup(scale_grp_id,
                                        None, None, None, None, None))
 
-                balancer._scale_members = []
-                balancer._scale_members = self._to_members_from_scale_lb(
-                                        nodes=nodes,
-                                        port=member_port, balancer=balancer)
+                balancer._scale_members = [self._to_member_from_scale_lb(
+                                           n, member_port, balancer)\
+                                           for n in nodes]
 
-            balancer._members = []
-            if 'serviceGroups' in vs and vs['serviceGroups']:
-                svc_grp = vs['serviceGroups'][0]
-                balancer._members = self._to_members(svc_grp['services'],
-                                                balancer)
+            if vs['serviceGroups']:
+                srvgrp = vs['serviceGroups'][0]
+                balancer._members = [self._to_member(srv, balancer)\
+                                     for srv in srvgrp['services']]
 
         return balancer
-
-    def _to_members_from_scale_lb(self, nodes, port, balancer=None):
-        return [self._to_member_from_scale_lb(n, port, balancer)\
-                                             for n in nodes]
 
     def _to_member_from_scale_lb(self, n, port, balancer=None):
         ip = n.public_ips[0] if n.public_ips else None
@@ -325,9 +304,6 @@ class SoftlayerLBDriver(Driver):
             ip = n.private_ips[0] if n.private_ips else '127.0.0.1'
 
         return Member(id=n.id, ip=ip, port=port, balancer=balancer)
-
-    def _to_members(self, services, balancer=None):
-        return [self._to_member(svc, balancer) for svc in services]
 
     def _to_member(self, svc, balancer=None):
 
