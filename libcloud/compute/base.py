@@ -1442,7 +1442,7 @@ class NodeDriver(BaseDriver):
         raise NotImplementedError(
             'list_auto_scale_group_members not implemented for this driver')
 
-    def create_auto_scale_policy(self, group, name, adjustment_type, 
+    def create_auto_scale_policy(self, group, name, adjustment_type,
                       scaling_adjustment):
         """
         Create an auto scale policy for the given group.
