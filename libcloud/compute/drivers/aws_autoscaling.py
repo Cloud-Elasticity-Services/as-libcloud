@@ -17,7 +17,7 @@ import base64
 import time
 
 from libcloud.utils.misc import find, reverse_dict
-from libcloud.utils.xml import fixxpath, findtext, findall
+from libcloud.utils.xml import fixxpath, findattr, findtext, findall
 from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse
 from libcloud.common.types import LibcloudError, ResourceNotFoundError, \
                                   ResourceExistsError
@@ -360,7 +360,7 @@ class AutoScaleDriver(NodeDriver):
                                 image,
                                 termination_policies=\
                                 AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-                                **kwargs):
+                                balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
@@ -454,6 +454,9 @@ class AutoScaleDriver(NodeDriver):
             for p in range(len(termination_policies)):
                 data['TerminationPolicies.member.%d' % (p + 1,)] =\
                     self._termination_policy_to_value(termination_policies[p])
+
+        if balancer:
+            data['LoadBalancerNames.member.1'] = balancer.name
 
         configuration = template
         configuration.update({'Action': 'CreateLaunchConfiguration'})
@@ -650,7 +653,7 @@ class AutoScaleDriver(NodeDriver):
 
         extra = {}
         extra['region'] = self.region_name
-
+        extra['balancer_names'] = self._get_balancer_names(element)
         extra['launch_configuration_name'] =\
                              findtext(element=element, 
                                       xpath='LaunchConfigurationName',
@@ -724,7 +727,22 @@ class AutoScaleDriver(NodeDriver):
         except KeyError:
             raise LibcloudError(value='Invalid termination policy: %s'
                                 % (termination_policy), driver=self)
+    def _get_balancer_names(self, element):
+        """
+        Parse load balancer names from the provided element and return a
+        list of therse.
 
+        :rtype: ``list`` of ``str``
+        """
+        balancer_names = []
+        for item in findall(element=element, xpath='LoadBalancerNames',
+                            namespace=AUTOSCALE_NAMESPACE):
+            b_n = findtext(element=item, xpath='member',
+                           namespace=AUTOSCALE_NAMESPACE)
+            if b_n is not None:
+                balancer_names.append(b_n)
+
+        return balancer_names
 
 class AutoScaleUSWestDriver(AutoScaleDriver):
     """

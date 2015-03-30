@@ -551,7 +551,7 @@ class SoftLayerNodeDriver(NodeDriver):
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
                                 image=None, termination_policies=\
                                 AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-                                **kwargs):
+                                balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
@@ -577,6 +577,9 @@ class SoftLayerNodeDriver(NodeDriver):
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
 
+        :param balancer: The load balancer to attach this group.
+        :type balancer: :class:`.LoadBalancer`
+
         :keyword    size: Size definition for group members instances.
         :type       size: :class:`.NodeSize`
 
@@ -590,6 +593,13 @@ class SoftLayerNodeDriver(NodeDriver):
         :keyword    ex_datacenter: The datacenter that the group members will
                                    be created in.
         :type       ex_datacenter:   ``str``
+
+        :keyword    ex_region: The region the group will be created in.
+        :type       ex_region: ``str``
+
+        :keyword    ex_service_port: Service port to be used by the group
+                                     members.
+        :type       ex_service_port: ``int``
 
         :keyword    ex_instance_name: The name of the group members instances.
         :type       ex_instance_name: ``str``
@@ -745,9 +755,17 @@ class SoftLayerNodeDriver(NodeDriver):
 
         data['virtualGuestMemberTemplate'] = template
 
+        if balancer:
+            if not datacenter:
+                raise ValueError('location or ex_datacenter must be supplied'
+                                 ' when supplying loadbalancer')
+
+            ex_service_port = kwargs.get('ex_service_port', 80)
+            data['loadBalancers'] = [self._generate_balancer_template(balancer,
+                                     ex_service_port)]
+
         res = self.connection.request('SoftLayer_Scale_Group', 
-                                       'createObject',
-                                       data).object
+                                      'createObject', data).object
 
         _wait_for_creation(res['id'])
         mask = {
@@ -988,6 +1006,153 @@ class SoftLayerNodeDriver(NodeDriver):
         _wait_for_deletion(group.name)
 
         return True
+
+    def ex_attach_balancer_to_auto_scale_group(self, group, balancer,
+                                            ex_service_port=80):
+        """
+        Attach loadbalancer to auto scale group.
+
+        :param group: Group object.
+        :type group: :class:`.AutoScaleGroup`
+
+        :param balancer: The loadbalancer object.
+        :type balancer: :class:`.LoadBalancer`
+
+        :param ex_service_port: Service port to be used by the group members.
+        :type  ex_service_port: ``int``
+
+        :return: ``True`` if attach_balancer_to_auto_scale_group was
+        successful, ``False`` otherwise.
+        :rtype: ``bool``
+        """
+        def _get_group_model(group_id):
+
+            mask = {
+                'loadBalancers': ''
+            }
+
+            return self.connection.request('SoftLayer_Scale_Group',
+                                           'getObject', object_mask=mask,
+                                           id=group_id).object
+
+        res = _get_group_model(group.id)
+        res['loadBalancers'].append(self._generate_balancer_template(balancer,
+                                    ex_service_port))
+        self.connection.request('SoftLayer_Scale_Group', 'editObject',res,
+                                id=group.id)
+        return True
+
+    def ex_detach_balancer_from_auto_scale_group(self, group, balancer):
+        """
+        Detach loadbalancer from auto scale group.
+
+        :param group: Group object.
+        :type group: :class:`.AutoScaleGroup`
+
+        :param balancer: The loadbalancer object.
+        :type balancer: :class:`.LoadBalancer`
+
+        :return: ``True`` if detach_balancer_from_auto_scale_group was
+        successful, ``False`` otherwise.
+        :rtype: ``bool``
+        """
+
+        def _get_group_model(group_id):
+
+            mask = {
+                'loadBalancers': ''
+            }
+
+            return self.connection.request('SoftLayer_Scale_Group',
+                                           'getObject', object_mask=mask,
+                                           id=group_id).object
+
+        def _get_balancer_model(balancer_id):
+
+            lb_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
+            'LoadBalancer_VirtualIpAddress'
+
+            lb_mask = {
+                    'virtualServers': {
+                        'serviceGroups': {
+                            'services': ''
+                        },
+                        'scaleLoadBalancers': {
+                        }
+                    }
+            }
+
+            lb_res = self.connection.request(lb_service, 'getObject',
+                                             object_mask=lb_mask,
+                                             id=balancer_id).object
+            return lb_res
+
+        def _locate_vs(lb, port):
+
+            vs = None
+            if port < 0:
+                vs = lb['virtualServers'][0] if lb['virtualServers']\
+                                             else None
+            else:
+                for v in lb['virtualServers']:
+                    if v['port'] == port:
+                        vs = v
+
+            return vs
+
+        res = _get_group_model(group.id)
+        lb_res = _get_balancer_model(balancer.id)
+        vs = _locate_vs(lb_res, balancer.port)
+        if not vs:
+            raise LibcloudError(value='No service_group found for port: %s' %\
+                                balancer.port, driver=self)
+        lbs_to_remove = [lb['id'] for lb in res['loadBalancers'] if \
+                         lb['virtualServerId'] == vs['id']]
+        for lb in lbs_to_remove:
+            #res['loadBalancers'].remove(lb)
+            self.connection.request('SoftLayer_Scale_LoadBalancer',
+                                    'deleteObject', id=lb)
+        return True
+
+    def _generate_balancer_template(self, balancer, ex_service_port):
+
+        lb_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
+        'LoadBalancer_VirtualIpAddress'
+
+        lb_mask = {
+                'virtualServers': {
+                    'serviceGroups': {
+                    },
+                    'scaleLoadBalancers': {
+                    }
+                }
+        }
+
+        # get the loadbalancer
+        lb_res = self.connection.request(lb_service, 'getObject',
+                                         object_mask=lb_mask, id=balancer.id).\
+                                         object
+        # find the vs with matching balancer port
+        # we need vs id for the scale template to 'connect' it
+        vss = lb_res.get('virtualServers', [])
+        vs = find(vss, lambda vs: vs['port'] == balancer.port)
+        if not vs:
+            raise LibcloudError(value='No virtualServers found for'\
+                                ' Softlayer loadbalancer with port: %s' %\
+                                balancer.port, driver=self)
+
+        scale_lb_template = {
+            # connect it to the matched vs
+            'virtualServerId': vs['id'],
+            'port': ex_service_port,
+            # TODO: have this configurable
+            # DEFAULT health check
+            'healthCheck': {
+                'healthCheckTypeId': 21
+            }
+        }
+        return scale_lb_template
+
 
     def _get_auto_scale_group(self, group_name):
 

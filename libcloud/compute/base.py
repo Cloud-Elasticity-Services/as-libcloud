@@ -1365,7 +1365,7 @@ class NodeDriver(BaseDriver):
     def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
                                 image=None, termination_policies=\
                                 AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-                                **kwargs):
+                                balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
         automatically. Some of the keyward arguments are driver specific
@@ -1389,6 +1389,9 @@ class NodeDriver(BaseDriver):
 
         :param image: The image to create the member with.
         :type image: :class:`.NodeImage`
+
+        :param balancer: The load balancer to attach.
+        :type balancer: :class:`.LoadBalancer`
 
         :keyword    size: Size definition for group members instances.
         :type       size: :class:`.NodeSize`
@@ -1423,7 +1426,7 @@ class NodeDriver(BaseDriver):
         raise NotImplementedError(
             'list_auto_scale_group_members not implemented for this driver')
 
-    def create_auto_scale_policy(self, group, name, adjustment_type, 
+    def create_auto_scale_policy(self, group, name, adjustment_type,
                       scaling_adjustment):
         """
         Create an auto scale policy for the given group.
