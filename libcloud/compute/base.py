@@ -1359,7 +1359,7 @@ class NodeDriver(BaseDriver):
         raise NotImplementedError(
             'delete_key_pair not implemented for this driver')
 
-    def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
+    def create_auto_scale_group(self, name, min_size, max_size, cooldown,
                                 image=None, balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
@@ -1411,7 +1411,7 @@ class NodeDriver(BaseDriver):
         raise NotImplementedError(
             'list_auto_scale_group_members not implemented for this driver')
 
-    def create_auto_scale_policy(self, group, name, adjustment_type, 
+    def create_auto_scale_policy(self, group, name, adjustment_type,
                       scaling_adjustment):
         """
         Create an auto scale policy for the given group.
