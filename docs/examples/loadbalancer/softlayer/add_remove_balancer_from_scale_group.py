@@ -1,6 +1,8 @@
 import time
 
 from libcloud.compute.base import NodeLocation
+from libcloud.compute.types import AutoScaleTerminationPolicy
+
 from libcloud.loadbalancer.base import Algorithm
 
 from libcloud.loadbalancer.types import Provider as lb_provider
@@ -12,7 +14,7 @@ from libcloud.compute.providers import get_driver
 cls = get_driver(provider.SOFTLAYER)
 
 USER_NAME = 'your user name'
-SECRET_KEY =  'your secret key'
+SECRET_KEY = 'your secret key'
 
 DATACENTER = 'dal05'
 REGION = 'na-usa-central-1'
@@ -64,6 +66,8 @@ group = driver.create_auto_scale_group(name='libcloud-group', min_size=1,
                              max_size=5, cooldown=300,
                              location=NodeLocation(DATACENTER, None, None,
                                                    None),
+                             termination_policies=AutoScaleTerminationPolicy.\
+                                                  CLOSEST_TO_NEXT_CHARGE,
                              balancer=balancer,
                              ex_service_port=BACKEND_PORT1,
                              ex_region=REGION)
