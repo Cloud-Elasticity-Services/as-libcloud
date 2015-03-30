@@ -151,20 +151,23 @@ class SoftLayerNodeDriver(NodeDriver):
          will be incurred.
     """
 
-    operator_mapping = {
-        AutoScaleOperator.GT: '>',
-        AutoScaleOperator.LT: '<'
+    _VALUE_TO_SCALE_OPERATOR_TYPE_MAP = {
+        '>': AutoScaleOperator.GT,
+        '<': AutoScaleOperator.LT
     }
 
-    scale_adjustment_mapping = {
-        AutoScaleAdjustmentType.CHANGE_IN_CAPACITY: 'RELATIVE', 
-        AutoScaleAdjustmentType.EXACT_CAPACITY: 'ABSOLUTE',
-        AutoScaleAdjustmentType.PERCENT_CHANGE_IN_CAPACITY: 'PERCENT'
+    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(\
+                                        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
+
+    _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
+        'RELATIVE': AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
+        'ABSOLUTE': AutoScaleAdjustmentType.EXACT_CAPACITY,
+        'PERCENT': AutoScaleAdjustmentType.PERCENT_CHANGE_IN_CAPACITY
     }
 
-    metric_mapping = {
-        AutoScaleMetric.CPU_UTIL: 'host.cpu.percent'
-    }
+    _SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP = reverse_dict(\
+                                       _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP)
+
 
     _VALUE_TO_TERMINATION_POLICY_MAP = {
         'OLDEST': AutoScaleTerminationPolicy.OLDEST_INSTANCE,
@@ -175,6 +178,14 @@ class SoftLayerNodeDriver(NodeDriver):
 
     _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(\
                                        _VALUE_TO_TERMINATION_POLICY_MAP)
+
+    _VALUE_TO_METRIC_MAP = {
+        'host.cpu.percent': AutoScaleMetric.CPU_UTIL
+    }
+
+    _METRIC_TO_VALUE_MAP = reverse_dict(\
+                                       _VALUE_TO_METRIC_MAP)
+
 
     connectionCls = SoftLayerConnection
     name = 'SoftLayer'
@@ -836,12 +847,7 @@ class SoftLayerNodeDriver(NodeDriver):
         policy_action = {}
         policy_action['typeId'] = 1 # 'SCALE'
         policy_action['scaleType'] = \
-                           self.scale_adjustment_mapping.get(adjustment_type)
-        if policy_action['scaleType'] is None:
-            raise Exception('Illegal adjustment_type value' \
-                            '[adjustment_type=%(adjustment_type)s]' \
-                            % {'adjustment_type': adjustment_type})
-
+                            self._scale_adjustment_to_value(adjustment_type)
         policy_action['amount'] = scaling_adjustment
 
         data['scaleActions'] = [policy_action]
@@ -923,34 +929,28 @@ class SoftLayerNodeDriver(NodeDriver):
 
         trigger_watch = {}
         trigger_watch['algorithm'] = 'EWMA'
-        trigger_watch['metric'] = self.metric_mapping.get(metric_name)
-        if trigger_watch['metric'] is None:
-            raise Exception('Illegal metric_name value' \
-                            '[metric_name=%(metric_name)s]' \
-                            % {'metric_name': metric_name})
+        trigger_watch['metric'] = self._metric_to_value(metric_name)
 
         trigger_watch['operator'] = \
-                           self.operator_mapping.get(operator)
-        if trigger_watch['operator'] is None:
-            raise Exception('Illegal operator value' \
-                            '[operator=%(operator)s]' \
-                            % {'operator': operator})
+                     self._operator_type_to_value(operator)
 
         trigger_watch['value'] = threshold
         trigger_watch['period'] = period
 
         data['watches'] = [trigger_watch]
 
-        res = self.connection.request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                                      'createObject', data).object
+        res = self.connection.\
+                    request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
+                            'createObject', data).object
 
         mask = {
             'watches': ''
             }
         
-        res = self.connection.request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                                      'getObject', id=res['id'],
-                                      object_mask=mask).object
+        res = self.connection.\
+                    request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
+                            'getObject', id=res['id'],
+                            object_mask=mask).object
         alarm = self._to_autoscale_alarm(res)
 
         return alarm
@@ -1145,7 +1145,6 @@ class SoftLayerNodeDriver(NodeDriver):
             # connect it to the matched vs
             'virtualServerId': vs['id'],
             'port': ex_service_port,
-            # TODO: have this configurable
             # DEFAULT health check
             'healthCheck': {
                 'healthCheckTypeId': 21
@@ -1180,13 +1179,7 @@ class SoftLayerNodeDriver(NodeDriver):
         if plc.get('scaleActions', []):
                     
             adj_type = plc['scaleActions'][0]['scaleType']
-            adjustment_type= find(self.scale_adjustment_mapping,
-                            lambda e: self.scale_adjustment_mapping[e] == \
-                            adj_type)
-            if not adjustment_type:
-                raise Exception('Illegal adjustment_type value'
-                                ' [adj_type=%(adj_type)s]' \
-                                % {'adj_type': adj_type})
+            adjustment_type = self._value_to_scale_adjustment(adj_type)
             scaling_adjustment = plc['scaleActions'][0]['amount']
         
         return AutoScalePolicy(id=plc_id, name=name, 
@@ -1213,7 +1206,8 @@ class SoftLayerNodeDriver(NodeDriver):
         extra = {}
         extra['id'] = grp_id
         extra['state'] = grp['status']['keyName']
-        extra['region'] = 'softlayer' # TODO: set with region name
+        # TODO: set with region name
+        extra['region'] = 'softlayer'
         extra['regionalGroupId'] = grp['regionalGroupId']
         extra['suspendedFlag'] = grp['suspendedFlag']
         extra['terminationPolicyId'] = grp['terminationPolicyId']
@@ -1224,7 +1218,6 @@ class SoftLayerNodeDriver(NodeDriver):
                                 driver=self.connection.driver,
                                 extra=extra)
 
-# TODO: check if something like StateValue exists here
     def _to_autoscale_alarm(self, alrm):
 
         alrm_id = alrm['id']
@@ -1235,20 +1228,10 @@ class SoftLayerNodeDriver(NodeDriver):
         threshold =None
 
         if alrm.get('watches', []):
-        
-            metric_name = alrm['watches'][0]['metric']
-            metric = find(self.metric_mapping,
-                            lambda e: self.metric_mapping[e] == metric_name)
-            if not metric:
-                raise Exception('Illegal metric_name value [metric=%(metric)s]' \
-                                % {'metric': metric})                
+
+            metric = self._value_to_metric(alrm['watches'][0]['metric'])
             op = alrm['watches'][0]['operator']
-            operator = find(self.operator_mapping,
-                            lambda e: self.operator_mapping[e] == op)
-            if not operator:
-                raise Exception('Illegal operator value [op=%(op)s]' \
-                                % {'op': op})
-    
+            operator = self._value_to_operator_type(op)
             period = alrm['watches'][0]['period']
             threshold = alrm['watches'][0]['value']
 
@@ -1256,6 +1239,35 @@ class SoftLayerNodeDriver(NodeDriver):
                               operator=operator, period=period,
                               threshold=int(threshold),
                               driver=self.connection.driver)
+
+    def _value_to_operator_type(self, value):
+
+        try:
+            return self._VALUE_TO_SCALE_OPERATOR_TYPE_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _operator_type_to_value(self, operator_type):
+        try:
+            return self._SCALE_OPERATOR_TYPE_TO_VALUE_MAP[operator_type]
+        except KeyError:
+            raise LibcloudError(value='Invalid operator type: %s'
+                                % (operator_type), driver=self)
+
+    def _value_to_scale_adjustment(self, value):
+        try:
+            return self._VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _scale_adjustment_to_value(self, scale_adjustment):
+        try:
+            return self._SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP[scale_adjustment]
+        except KeyError:
+            raise LibcloudError(value='Invalid scale adjustment: %s'
+                                % (scale_adjustment), driver=self)
 
     def _value_to_termination_policy(self, value):
         try:
@@ -1271,3 +1283,17 @@ class SoftLayerNodeDriver(NodeDriver):
             raise LibcloudError(value='Invalid termination policy: %s'
                                 % (termination_policy), driver=self)
 
+    def _value_to_metric(self, value):
+
+        try:
+            return self._VALUE_TO_METRIC_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _metric_to_value(self, metric):
+        try:
+            return self._METRIC_TO_VALUE_MAP[metric]
+        except KeyError:
+            raise LibcloudError(value='Invalid metric: %s'
+                                % (metric), driver=self)

@@ -16,8 +16,8 @@
 import base64
 import time
 
-from libcloud.utils.misc import find, reverse_dict
-from libcloud.utils.xml import fixxpath, findattr, findtext, findall
+from libcloud.utils.misc import reverse_dict
+from libcloud.utils.xml import fixxpath, findtext, findall
 from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse
 from libcloud.common.types import LibcloudError, ResourceNotFoundError, \
                                   ResourceExistsError
@@ -104,16 +104,24 @@ class CloudWatchConnection(SignedAWSConnection):
 
 class CloudWatchDriver(NodeDriver):
 
-    operator_mapping = {
-        AutoScaleOperator.GE: 'GreaterThanOrEqualToThreshold',
-        AutoScaleOperator.GT: 'GreaterThanThreshold',
-        AutoScaleOperator.LE: 'LessThanOrEqualToThreshold',
-        AutoScaleOperator.LT: 'LessThanThreshold'
+    _VALUE_TO_SCALE_OPERATOR_TYPE_MAP = {
+        'GreaterThanOrEqualToThreshold': AutoScaleOperator.GE,
+        'GreaterThanThreshold': AutoScaleOperator.GT,
+        'LessThanOrEqualToThreshold': AutoScaleOperator.LE,
+        'LessThanThreshold': AutoScaleOperator.LT,
+
     }
 
-    metric_mapping = {
-        AutoScaleMetric.CPU_UTIL: 'CPUUtilization'
+    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(\
+                                        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
+
+    _VALUE_TO_METRIC_MAP = {
+        'CPUUtilization': AutoScaleMetric.CPU_UTIL
     }
+
+    _METRIC_TO_VALUE_MAP = reverse_dict(\
+                                       _VALUE_TO_METRIC_MAP)
+
     connectionCls = CloudWatchConnection
 
     type = Provider.AWS_CLOUDWATCH
@@ -180,18 +188,10 @@ class CloudWatchDriver(NodeDriver):
         data['Namespace'] = kwargs['ex_namespace']
         data['Statistic'] = 'Average'
 
-        data['MetricName'] = self.metric_mapping.get(metric_name)
-        if data['MetricName'] is None:
-            raise Exception('Illegal metric_name value' \
-                            '[metric_name=%(metric_name)s]' \
-                            % {'metric_name': metric_name})
+        data['MetricName'] = self._metric_to_value(metric_name)
 
         data['ComparisonOperator'] = \
-                           self.operator_mapping.get(operator)
-        if data['ComparisonOperator'] is None:
-            raise Exception('Illegal operator value' \
-                            '[operator=%(operator)s]' \
-                            % {'operator': operator})
+                           self._operator_type_to_value(operator)
 
         data['EvaluationPeriods'] = 1
         data['Threshold'] = threshold
@@ -233,7 +233,6 @@ class CloudWatchDriver(NodeDriver):
                 for el in res.findall(fixxpath(xpath=xpath,
                                       namespace=CLOUDWATCH_NAMESPACE))]
 
-# TODO: map StateValue
     def _to_autoscale_alarm(self, element):
 
         extra = {}
@@ -251,17 +250,8 @@ class CloudWatchDriver(NodeDriver):
                              namespace=CLOUDWATCH_NAMESPACE)
         op = findtext(element=element, xpath='ComparisonOperator',
                              namespace=CLOUDWATCH_NAMESPACE)
-        metric = find(self.metric_mapping,
-                        lambda e: self.metric_mapping[e] == metric_name)
-        if not metric:
-            raise Exception('Illegal metric_name value [metric=%(metric)s]' \
-                            % {'metric': metric})                
-        
-        operator = find(self.operator_mapping,
-                        lambda e: self.operator_mapping[e] == op)
-        if not operator:
-            raise Exception('Illegal operator value [op=%(op)s]' \
-                            % {'op': op})
+        metric = self._value_to_metric(metric_name)
+        operator = self._value_to_operator_type(op)
 
         period = findtext(element=element, xpath='Period',
                              namespace=CLOUDWATCH_NAMESPACE)
@@ -285,6 +275,35 @@ class CloudWatchDriver(NodeDriver):
                               threshold=int(float(threshold)),
                               driver=self.connection.driver, extra=extra)
 
+    def _value_to_operator_type(self, value):
+
+        try:
+            return self._VALUE_TO_SCALE_OPERATOR_TYPE_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _operator_type_to_value(self, operator_type):
+        try:
+            return self._SCALE_OPERATOR_TYPE_TO_VALUE_MAP[operator_type]
+        except KeyError:
+            raise LibcloudError(value='Invalid operator type: %s'
+                                % (operator_type), driver=self)
+
+    def _value_to_metric(self, value):
+
+        try:
+            return self._VALUE_TO_METRIC_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _metric_to_value(self, metric):
+        try:
+            return self._METRIC_TO_VALUE_MAP[metric]
+        except KeyError:
+            raise LibcloudError(value='Invalid metric: %s'
+                                % (metric), driver=self)
 
 class AutoScaleResponse(AWSGenericResponse):
 
@@ -312,13 +331,16 @@ class AutoScaleDriver(NodeDriver):
     name = 'Amazon EC2'
     website = 'http://aws.amazon.com/ec2/'
     path = '/'
-    
-    scale_adjustment_mapping = {
-        AutoScaleAdjustmentType.CHANGE_IN_CAPACITY: 'ChangeInCapacity',
-        AutoScaleAdjustmentType.EXACT_CAPACITY: 'ExactCapacity',
-        AutoScaleAdjustmentType.PERCENT_CHANGE_IN_CAPACITY: \
-                                                    'PercentChangeInCapacity'
+
+    _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
+        'ChangeInCapacity': AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
+        'ExactCapacity': AutoScaleAdjustmentType.EXACT_CAPACITY,
+        'PercentChangeInCapacity': AutoScaleAdjustmentType.\
+                                   PERCENT_CHANGE_IN_CAPACITY
     }
+
+    _SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP = reverse_dict(\
+                                       _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP)
 
     _VALUE_TO_TERMINATION_POLICY_MAP = {
         'OldestInstance': AutoScaleTerminationPolicy.OLDEST_INSTANCE,
@@ -526,11 +548,7 @@ class AutoScaleDriver(NodeDriver):
         data['AutoScalingGroupName'] = group.name
         data['PolicyName'] = name
         data['AdjustmentType'] = \
-                           self.scale_adjustment_mapping.get(adjustment_type)
-        if data['AdjustmentType'] is None:
-            raise Exception('Illegal adjustment_type value' \
-                            '[adjustment_type=%(adjustment_type)s]' \
-                            % {'adjustment_type': adjustment_type})
+                           self._scale_adjustment_to_value(adjustment_type)
 
         data['ScalingAdjustment'] = scaling_adjustment
         data.update({'Action': 'PutScalingPolicy'})
@@ -678,13 +696,7 @@ class AutoScaleDriver(NodeDriver):
                              namespace=AUTOSCALE_NAMESPACE)
         adj_type = findtext(element=element, xpath='AdjustmentType',
                              namespace=AUTOSCALE_NAMESPACE)
-        adjustment_type = find(self.scale_adjustment_mapping,
-                            lambda e: self.scale_adjustment_mapping[e] == \
-                            adj_type)
-        if not adjustment_type:
-            raise Exception('Illegal adjustment_type value'
-                            ' [adj_type=%(adj_type)s]' \
-                            % {'adj_type': adj_type})
+        adjustment_type = self._value_to_scale_adjustment(adj_type)
 
         scaling_adjustment = findtext(element=element, 
                                       xpath='ScalingAdjustment',
@@ -713,7 +725,21 @@ class AutoScaleDriver(NodeDriver):
                                             _value_to_termination_policy(t_p))
 
         return termination_policies
-    
+
+    def _value_to_scale_adjustment(self, value):
+        try:
+            return self._VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP[value]
+        except KeyError:
+            raise LibcloudError(value='Invalid value: %s' % (value),
+                                driver=self)
+
+    def _scale_adjustment_to_value(self, scale_adjustment):
+        try:
+            return self._SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP[scale_adjustment]
+        except KeyError:
+            raise LibcloudError(value='Invalid scale adjustment: %s'
+                                % (scale_adjustment), driver=self)
+
     def _value_to_termination_policy(self, value):
         try:
             return self._VALUE_TO_TERMINATION_POLICY_MAP[value]
@@ -727,6 +753,7 @@ class AutoScaleDriver(NodeDriver):
         except KeyError:
             raise LibcloudError(value='Invalid termination policy: %s'
                                 % (termination_policy), driver=self)
+
     def _get_balancer_names(self, element):
         """
         Parse load balancer names from the provided element and return a
