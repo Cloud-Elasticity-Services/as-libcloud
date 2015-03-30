@@ -568,7 +568,8 @@ class SoftLayerNodeDriver(NodeDriver):
         :keyword    ex_region: The region the group will be created in.
         :type       ex_region: ``str``
 
-        :keyword    ex_service_port: Service port used by the group members.
+        :keyword    ex_service_port: Service port to be used by the group
+                                     members.
         :type       ex_service_port: ``int``
 
         :keyword    ex_instance_name: The name of the group members instances.
@@ -722,9 +723,9 @@ class SoftLayerNodeDriver(NodeDriver):
                 raise ValueError('location or ex_datacenter must be supplied'
                                  ' when supplying loadbalancer')
 
-            ex_instance_port = kwargs.get('ex_instance_port', 80)
-            data['loadBalancers'] = [self._create_balancer_template(balancer,
-                                     ex_instance_port)]
+            ex_service_port = kwargs.get('ex_service_port', 80)
+            data['loadBalancers'] = [self._generate_balancer_template(balancer,
+                                     ex_service_port)]
 
         res = self.connection.request('SoftLayer_Scale_Group', 
                                       'createObject', data).object
@@ -736,7 +737,6 @@ class SoftLayerNodeDriver(NodeDriver):
         group = self._to_autoscale_group(res)
 
         return group
-
 
     def list_auto_scale_group_members(self, group):
         """
@@ -966,10 +966,117 @@ class SoftLayerNodeDriver(NodeDriver):
 
         return True
 
-    def _create_balancer_template(self, balancer, ex_instance_port):
+    def ex_attach_balancer_to_auto_scale_group(self, group, balancer,
+                                            ex_service_port=80):
+        """
+        Attach loadbalancer to auto scale group.
 
-        lb_service = 'SoftLayer_Network_Application_Delivery_Controller_LoadBalancer_'\
-        'VirtualIpAddress'
+        :param group: Group object.
+        :type group: :class:`.AutoScaleGroup`
+
+        :param balancer: The loadbalancer object.
+        :type balancer: :class:`.LoadBalancer`
+
+        :param ex_service_port: Service port to be used by the group members.
+        :type  ex_service_port: ``int``
+
+        :return: ``True`` if attach_balancer_to_auto_scale_group was
+        successful, ``False`` otherwise.
+        :rtype: ``bool``
+        """
+        def _get_group_model(group_id):
+
+            mask = {
+                'loadBalancers': ''
+            }
+
+            return self.connection.request('SoftLayer_Scale_Group',
+                                           'getObject', object_mask=mask,
+                                           id=group_id).object
+
+        res = _get_group_model(group.id)
+        res['loadBalancers'].append(self._generate_balancer_template(balancer,
+                                    ex_service_port))
+        self.connection.request('SoftLayer_Scale_Group', 'editObject',res,
+                                id=group.id)
+        return True
+
+    def ex_detach_balancer_from_auto_scale_group(self, group, balancer):
+        """
+        Detach loadbalancer from auto scale group.
+
+        :param group: Group object.
+        :type group: :class:`.AutoScaleGroup`
+
+        :param balancer: The loadbalancer object.
+        :type balancer: :class:`.LoadBalancer`
+
+        :return: ``True`` if detach_balancer_from_auto_scale_group was
+        successful, ``False`` otherwise.
+        :rtype: ``bool``
+        """
+
+        def _get_group_model(group_id):
+
+            mask = {
+                'loadBalancers': ''
+            }
+
+            return self.connection.request('SoftLayer_Scale_Group',
+                                           'getObject', object_mask=mask,
+                                           id=group_id).object
+
+        def _get_balancer_model(balancer_id):
+
+            lb_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
+            'LoadBalancer_VirtualIpAddress'
+
+            lb_mask = {
+                    'virtualServers': {
+                        'serviceGroups': {
+                            'services': ''
+                        },
+                        'scaleLoadBalancers': {
+                        }
+                    }
+            }
+
+            lb_res = self.connection.request(lb_service, 'getObject',
+                                             object_mask=lb_mask,
+                                             id=balancer_id).object
+            return lb_res
+
+        def _locate_vs(lb, port):
+
+            vs = None
+            if port < 0:
+                vs = lb['virtualServers'][0] if lb['virtualServers']\
+                                             else None
+            else:
+                for v in lb['virtualServers']:
+                    if v['port'] == port:
+                        vs = v
+
+            return vs
+
+        res = _get_group_model(group.id)
+        lb_res = _get_balancer_model(balancer.id)
+        vs = _locate_vs(lb_res, balancer.port)
+        if not vs:
+            raise LibcloudError(value='No service_group found for port: %s' %\
+                                balancer.port, driver=self)
+        lbs_to_remove = [lb['id'] for lb in res['loadBalancers'] if \
+                         lb['virtualServerId'] == vs['id']]
+        for lb in lbs_to_remove:
+            #res['loadBalancers'].remove(lb)
+            self.connection.request('SoftLayer_Scale_LoadBalancer',
+                                    'deleteObject', id=lb)
+        return True
+
+    def _generate_balancer_template(self, balancer, ex_service_port):
+
+        lb_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
+        'LoadBalancer_VirtualIpAddress'
 
         lb_mask = {
                 'virtualServers': {
@@ -996,7 +1103,8 @@ class SoftLayerNodeDriver(NodeDriver):
         scale_lb_template = {
             # connect it to the matched vs
             'virtualServerId': vs['id'],
-            'port': ex_instance_port,
+            'port': ex_service_port,
+            # TODO: have this configurable
             # DEFAULT health check
             'healthCheck': {
                 'healthCheckTypeId': 21
