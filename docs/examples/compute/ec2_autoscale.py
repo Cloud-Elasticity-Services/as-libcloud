@@ -1,8 +1,7 @@
 from pprint import pprint
 
 from libcloud.compute.types import Provider, AutoScaleAdjustmentType,\
-                                   AutoScaleMetric, AutoScaleOperator,\
-                                   AutoScaleTerminationPolicy
+    AutoScaleMetric, AutoScaleOperator, AutoScaleTerminationPolicy
 from libcloud.compute.providers import get_driver
 
 ACCESS_ID = 'your access id'
@@ -28,28 +27,26 @@ sizes = driver.list_sizes()
 size = [s for s in sizes if s.id == SIZE_ID][0]
 
 location = driver.list_locations()[1]
-group = as_driver.create_auto_scale_group(name='libcloud-group',
-                       min_size=2, max_size=5, cooldown=300,
-                       termination_policies=[AutoScaleTerminationPolicy.\
-                                          CLOSEST_TO_NEXT_CHARGE],
-                       image=image, size=size, location=location,
-                       ex_instance_name='test-node')
+group = as_driver.create_auto_scale_group(
+    name='libcloud-group', min_size=2, max_size=5, cooldown=300,
+    termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
+    image=image, size=size, location=location, ex_instance_name='test-node')
+
 pprint(group)
 
-policy = as_driver.create_auto_scale_policy(group=group,
-                       name='libcloud-policy',
-                       adjustment_type=\
-                       AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
-                       scaling_adjustment=1)
+policy = as_driver.create_auto_scale_policy(
+    group=group, name='libcloud-policy',
+    adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
+    scaling_adjustment=1)
+
 pprint(policy)
 
-alarm = cw_driver.create_auto_scale_alarm(name=\
-                       'libcloud-alarm',
-                       policy=policy,
-                       metric_name=AutoScaleMetric.CPU_UTIL,
-                       operator=AutoScaleOperator.GT,
-                       threshold=80,
-                       period=120)
+alarm = cw_driver.create_auto_scale_alarm(name='libcloud-alarm',
+                                          policy=policy,
+                                          metric_name=AutoScaleMetric.CPU_UTIL,
+                                          operator=AutoScaleOperator.GT,
+                                          threshold=80,
+                                          period=120)
 pprint(alarm)
 
 import time

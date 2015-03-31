@@ -98,9 +98,9 @@ class LBPackage(object):
         self.capacity = capacity
 
     def __repr__(self):
-        return ('<LBPackage: id=%s, name=%s, description=%s, price_id=%s, '\
-                'capacity=%s>'\
-                 % (self.id, self.name, self.description,
+        return (
+            '<LBPackage: id=%s, name=%s, description=%s, price_id=%s, '
+            'capacity=%s>' % (self.id, self.name, self.description,
                               self.price_id, self.capacity))
 
 
@@ -325,6 +325,8 @@ class SoftlayerLBDriver(Driver):
                         'ipAddress': '',
                         'groupReferences': '',
                     }
+                },
+                'scaleLoadBalancers': {
                 }
             }
         }
@@ -424,7 +426,7 @@ class SoftlayerLBDriver(Driver):
         res = self.connection.request('SoftLayer_Location_Datacenter',
                                       'getDatacenters').object
 
-        dcenter = find (res, lambda d: d['name'] == location_id)
+        dcenter = find(res, lambda d: d['name'] == location_id)
         if not dcenter:
             raise LibcloudError(value='Invalid value %s' % location_id,
                                 driver=self)

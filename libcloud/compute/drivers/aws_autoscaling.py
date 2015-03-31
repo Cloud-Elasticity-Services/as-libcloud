@@ -20,14 +20,14 @@ from libcloud.utils.misc import reverse_dict
 from libcloud.utils.xml import fixxpath, findtext, findall
 from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse
 from libcloud.common.types import LibcloudError, ResourceNotFoundError, \
-                                  ResourceExistsError
+    ResourceExistsError
 from libcloud.compute.providers import Provider
 from libcloud.compute.base import NodeDriver, AutoScaleGroup, AutoScalePolicy,\
-                                  AutoScaleAlarm
+    AutoScaleAlarm
 from libcloud.compute.drivers.ec2 import EC2NodeDriver, EC2Connection,\
-                                  EC2Response
+    EC2Response
 from libcloud.compute.types import AutoScaleAdjustmentType, AutoScaleOperator,\
-                                   AutoScaleMetric, AutoScaleTerminationPolicy
+    AutoScaleMetric, AutoScaleTerminationPolicy
 
 AUTOSCALE_API_VERSION = '2011-01-01'
 AUTOSCALE_NAMESPACE = 'http://autoscaling.amazonaws.com/doc/%s/' % \
@@ -93,6 +93,7 @@ CLOUDWATCH_REGION_DETAILS = {
 VALID_AUTOSCALE_REGIONS = AUTOSCALE_REGION_DETAILS.keys()
 VALID_CLOUDWATCH_REGIONS = CLOUDWATCH_REGION_DETAILS.keys()
 
+
 class CloudWatchConnection(SignedAWSConnection):
     """
     Represents a single connection to the CloudWatch Endpoint.
@@ -101,6 +102,7 @@ class CloudWatchConnection(SignedAWSConnection):
     version = CLOUDWATCH_API_VERSION
     host = CLOUDWATCH_REGION_DETAILS['us-east-1']['endpoint']
     responseCls = EC2Response
+
 
 class CloudWatchDriver(NodeDriver):
 
@@ -112,15 +114,14 @@ class CloudWatchDriver(NodeDriver):
 
     }
 
-    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(\
-                                        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
+    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
 
     _VALUE_TO_METRIC_MAP = {
         'CPUUtilization': AutoScaleMetric.CPU_UTIL
     }
 
-    _METRIC_TO_VALUE_MAP = reverse_dict(\
-                                       _VALUE_TO_METRIC_MAP)
+    _METRIC_TO_VALUE_MAP = reverse_dict(_VALUE_TO_METRIC_MAP)
 
     connectionCls = CloudWatchConnection
 
@@ -145,9 +146,8 @@ class CloudWatchDriver(NodeDriver):
         host = host or details['endpoint']
 
         super(CloudWatchDriver, self).__init__(key=key, secret=secret,
-                                            secure=secure, host=host,
-                                            port=port, **kwargs)
-
+                                               secure=secure, host=host,
+                                               port=port, **kwargs)
 
     def create_auto_scale_alarm(self, name, policy, metric_name, operator,
                                 threshold, period, **kwargs):
@@ -191,7 +191,7 @@ class CloudWatchDriver(NodeDriver):
         data['MetricName'] = self._metric_to_value(metric_name)
 
         data['ComparisonOperator'] = \
-                           self._operator_type_to_value(operator)
+            self._operator_type_to_value(operator)
 
         data['EvaluationPeriods'] = 1
         data['Threshold'] = threshold
@@ -204,24 +204,21 @@ class CloudWatchDriver(NodeDriver):
         data['Action'] = 'DescribeAlarms'
         data['AlarmNames.member.1'] = name or 'example_alarm'
         res = self.connection.request(self.path, params=data).object
-        alarms = self._to_autoscale_alarms(res,
-                                 'DescribeAlarmsResult/MetricAlarms/member')
+        alarms = self._to_autoscale_alarms(
+            res, 'DescribeAlarmsResult/MetricAlarms/member')
         return alarms[0]
 
     def list_auto_scale_alarms(self, policy):
-        """
-        List alarms associated with the given auto scale policy
-        """
         data = {}
         data['Action'] = 'DescribeAlarms'
         res = self.connection.request(self.path, params=data).object
-        alarms = self._to_autoscale_alarms(res,'DescribeAlarmsResult/MetricAlarms/member')
+        alarms = self._to_autoscale_alarms(
+            res, 'DescribeAlarmsResult/MetricAlarms/member')
+
         # return only alarms for this policy
         return [a for a in alarms if a.extra.get('ex_policy_id') == policy.id]
 
     def delete_auto_scale_alarm(self, alarm):
-        """Delete an auto scale alarm
-        """
         data = {}
         data['Action'] = 'DeleteAlarms'
         data['AlarmNames.member.1'] = alarm.name
@@ -238,23 +235,23 @@ class CloudWatchDriver(NodeDriver):
         extra = {}
 
         name = findtext(element=element, xpath='AlarmName',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                        namespace=CLOUDWATCH_NAMESPACE)
 
         alarm_id = findtext(element=element, xpath='AlarmArn',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                            namespace=CLOUDWATCH_NAMESPACE)
 
         extra['ex_namespace'] = findtext(element=element, xpath='Namespace',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                                         namespace=CLOUDWATCH_NAMESPACE)
 
         metric_name = findtext(element=element, xpath='MetricName',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                               namespace=CLOUDWATCH_NAMESPACE)
         op = findtext(element=element, xpath='ComparisonOperator',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                      namespace=CLOUDWATCH_NAMESPACE)
         metric = self._value_to_metric(metric_name)
         operator = self._value_to_operator_type(op)
 
         period = findtext(element=element, xpath='Period',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                          namespace=CLOUDWATCH_NAMESPACE)
 
         threshold = findtext(element=element, xpath='Threshold',
                              namespace=CLOUDWATCH_NAMESPACE)
@@ -265,12 +262,12 @@ class CloudWatchDriver(NodeDriver):
             ARN and that the action is an auto scale policy
             """
             return findtext(element=element, xpath='AlarmActions/member',
-                             namespace=CLOUDWATCH_NAMESPACE)
+                            namespace=CLOUDWATCH_NAMESPACE)
 
         policy_id = _to_alarm_action(element)
         extra['ex_policy_id'] = policy_id
 
-        return AutoScaleAlarm(id=alarm_id, name=name, metric_name=metric, 
+        return AutoScaleAlarm(id=alarm_id, name=name, metric_name=metric,
                               operator=operator, period=int(period),
                               threshold=int(float(threshold)),
                               driver=self.connection.driver, extra=extra)
@@ -305,6 +302,7 @@ class CloudWatchDriver(NodeDriver):
             raise LibcloudError(value='Invalid metric: %s'
                                 % (metric), driver=self)
 
+
 class AutoScaleResponse(AWSGenericResponse):
 
     namespace = AUTOSCALE_NAMESPACE
@@ -313,15 +311,17 @@ class AutoScaleResponse(AWSGenericResponse):
         'AlreadyExists': ResourceExistsError
     }
 
+
 class AutoScaleConnection(EC2Connection):
     """
     Represents a single connection to the EC2 Endpoint.
     """
- 
+
     version = AUTOSCALE_API_VERSION
     host = AUTOSCALE_REGION_DETAILS['us-east-1']['endpoint']
 
     responseCls = AutoScaleResponse
+
 
 class AutoScaleDriver(NodeDriver):
 
@@ -335,23 +335,23 @@ class AutoScaleDriver(NodeDriver):
     _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
         'ChangeInCapacity': AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
         'ExactCapacity': AutoScaleAdjustmentType.EXACT_CAPACITY,
-        'PercentChangeInCapacity': AutoScaleAdjustmentType.\
-                                   PERCENT_CHANGE_IN_CAPACITY
+        'PercentChangeInCapacity': AutoScaleAdjustmentType.
+        PERCENT_CHANGE_IN_CAPACITY
     }
 
-    _SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP = reverse_dict(\
-                                       _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP)
+    _SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP)
 
     _VALUE_TO_TERMINATION_POLICY_MAP = {
         'OldestInstance': AutoScaleTerminationPolicy.OLDEST_INSTANCE,
         'NewestInstance': AutoScaleTerminationPolicy.NEWEST_INSTANCE,
-        'ClosestToNextInstanceHour': AutoScaleTerminationPolicy.\
-                                     CLOSEST_TO_NEXT_CHARGE,
+        'ClosestToNextInstanceHour': AutoScaleTerminationPolicy.
+        CLOSEST_TO_NEXT_CHARGE,
         'Default': AutoScaleTerminationPolicy.DEFAULT
     }
 
-    _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(\
-                                       _VALUE_TO_TERMINATION_POLICY_MAP)
+    _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_TERMINATION_POLICY_MAP)
 
     def __init__(self, key, secret=None, secure=True, host=None, port=None,
                  region='us-east-1', **kwargs):
@@ -375,13 +375,12 @@ class AutoScaleDriver(NodeDriver):
                                      **kwargs)
 
         super(AutoScaleDriver, self).__init__(key=key, secret=secret,
-                                            secure=secure, host=host,
-                                            port=port, **kwargs)
+                                              secure=secure, host=host,
+                                              port=port, **kwargs)
 
     def create_auto_scale_group(
-        self, name, min_size, max_size, cooldown, 
-        image,
-        termination_policies=[AutoScaleTerminationPolicy.OLDEST_INSTANCE],
+        self, name, min_size, max_size, cooldown, image,
+        termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
         balancer=None, **kwargs):
         """
         Create a new auto scale group.
@@ -426,12 +425,12 @@ class AutoScaleDriver(NodeDriver):
         """
         DEFAULT_FLAVOR = 't2.micro'
         template = {
-        'ImageId': image.id
+            'ImageId': image.id
         }
 
         if 'ex_launch_configuration_name' in kwargs:
             template['LaunchConfigurationName'] = \
-                                         kwargs['ex_launch_configuration_name']
+                kwargs['ex_launch_configuration_name']
         else:
             template['LaunchConfigurationName'] = name
 
@@ -442,7 +441,7 @@ class AutoScaleDriver(NodeDriver):
             template['InstanceType'] = kwargs['size'].id
         else:
             template['InstanceType'] = DEFAULT_FLAVOR
-  
+
         data = {}
         data['AutoScalingGroupName'] = name
         data['LaunchConfigurationName'] = template['LaunchConfigurationName']
@@ -458,8 +457,9 @@ class AutoScaleDriver(NodeDriver):
             if availability_zone:
                 if availability_zone.region_name != self.region_name:
                     raise AttributeError('Invalid availability zone: %s'
-                                         ' for region: %s'\
-                                         % (availability_zone.name, self.region_name))
+                                         ' for region: %s'
+                                         % (availability_zone.name,
+                                            self.region_name))
                 a_z = availability_zone.name
 
         if not a_z:
@@ -496,14 +496,15 @@ class AutoScaleDriver(NodeDriver):
             except:
                 pass
             raise e
-            
+
         data = {}
         data['Action'] = 'DescribeAutoScalingGroups'
         data['AutoScalingGroupNames.member.1'] = name
 
         res = self.connection.request(self.path, params=data).object
-        groups = self._to_autoscale_groups(res, 'DescribeAutoScalingGroupsResult'
-                                         '/AutoScalingGroups/member')
+        groups = self._to_autoscale_groups(res,
+                                           'DescribeAutoScalingGroupsResult'
+                                           '/AutoScalingGroups/member')
         return groups[0]
 
     def list_auto_scale_groups(self):
@@ -512,20 +513,16 @@ class AutoScaleDriver(NodeDriver):
         data['Action'] = 'DescribeAutoScalingGroups'
 
         res = self.connection.request(self.path, params=data).object
-        return self._to_autoscale_groups(res, 'DescribeAutoScalingGroupsResult/'
-                                       'AutoScalingGroups/member')
+        return self._to_autoscale_groups(res,
+                                         'DescribeAutoScalingGroupsResult/'
+                                         'AutoScalingGroups/member')
 
     def list_auto_scale_group_members(self, group):
-        """
-        List members for given auto scale group.
+        return self.ec2.list_nodes(
+            ex_filters={'tag:aws:autoscaling:groupName': group.name})
 
-        :rtype: ``list`` of :class:`Node`
-        """
-        return self.ec2.list_nodes(ex_filters=\
-                           {'tag:aws:autoscaling:groupName': group.name})
-
-    def create_auto_scale_policy(self, group, name, adjustment_type, 
-                      scaling_adjustment):
+    def create_auto_scale_policy(self, group, name, adjustment_type,
+                                 scaling_adjustment):
         """
         Create an auto scale policy for the given group.
 
@@ -544,11 +541,11 @@ class AutoScaleDriver(NodeDriver):
         :type scaling_adjustment: ``int``
         """
 
-        data = {}        
+        data = {}
         data['AutoScalingGroupName'] = group.name
         data['PolicyName'] = name
         data['AdjustmentType'] = \
-                           self._scale_adjustment_to_value(adjustment_type)
+            self._scale_adjustment_to_value(adjustment_type)
 
         data['ScalingAdjustment'] = scaling_adjustment
         data.update({'Action': 'PutScalingPolicy'})
@@ -567,24 +564,14 @@ class AutoScaleDriver(NodeDriver):
         return policies[0]
 
     def list_auto_scale_policies(self, group):
-        """
-        List policies associated with the given auto scale group
-
-        @inherits: :class:`NodeDriver.list_auto_scale_policies`
-        """
         data = {}
         data['Action'] = 'DescribePolicies'
         data['AutoScalingGroupName'] = group.name
         res = self.connection.request(self.path, params=data).object
         return self._to_autoscale_policies(res, 'DescribePoliciesResult'
-                                                '/ScalingPolicies/member')
+                                           '/ScalingPolicies/member')
 
     def delete_auto_scale_policy(self, policy):
-        """
-        Delete auto scale policy.
-
-        @inherits: :class:`NodeDriver.delete_auto_scale_policy`
-        """
         data = {}
         data['Action'] = 'DeletePolicy'
         # policy ARN.
@@ -593,10 +580,8 @@ class AutoScaleDriver(NodeDriver):
         return True
 
     def delete_auto_scale_group(self, group):
-        """
-        Delete group completely with all of its resources
-        """
         DEFAULT_TIMEOUT = 1200
+
         def _wait_for_deletion(group_name):
             # 5 seconds
             POLL_INTERVAL = 5
@@ -637,16 +622,16 @@ class AutoScaleDriver(NodeDriver):
         data = {}
         data['Action'] = 'DescribeAutoScalingGroups'
         data['AutoScalingGroupNames.member.1'] = group_name
-        
+
         try:
             res = self.connection.request(self.path, params=data).object
-            groups = self._to_autoscale_groups(res, 
-                                             'DescribeAutoScalingGroupsResult'
-                                             '/AutoScalingGroups/member')
+            groups = self._to_autoscale_groups(
+                res, 'DescribeAutoScalingGroupsResult'
+                '/AutoScalingGroups/member')
 
             return groups[0]
         except IndexError:
-            raise ResourceNotFoundError(value='Group: %s not found' % \
+            raise ResourceNotFoundError(value='Group: %s not found' %
                                         group_name, driver=self)
 
     def _to_autoscale_groups(self, res, xpath):
@@ -654,34 +639,31 @@ class AutoScaleDriver(NodeDriver):
                 for el in res.findall(fixxpath(xpath=xpath,
                                                namespace=AUTOSCALE_NAMESPACE))]
 
-
     def _to_autoscale_group(self, element):
 
         group_id = findtext(element=element, xpath='AutoScalingGroupARN',
-                               namespace=AUTOSCALE_NAMESPACE)
+                            namespace=AUTOSCALE_NAMESPACE)
         name = findtext(element=element, xpath='AutoScalingGroupName',
-                             namespace=AUTOSCALE_NAMESPACE)
+                        namespace=AUTOSCALE_NAMESPACE)
         cooldown = findtext(element=element, xpath='DefaultCooldown',
-                             namespace=AUTOSCALE_NAMESPACE)
+                            namespace=AUTOSCALE_NAMESPACE)
         min_size = findtext(element=element, xpath='MinSize',
-                             namespace=AUTOSCALE_NAMESPACE)
+                            namespace=AUTOSCALE_NAMESPACE)
         max_size = findtext(element=element, xpath='MaxSize',
-                             namespace=AUTOSCALE_NAMESPACE)
+                            namespace=AUTOSCALE_NAMESPACE)
         termination_policies = self._get_termination_policies(element)
 
         extra = {}
         extra['region'] = self.region_name
         extra['balancer_names'] = self._get_balancer_names(element)
         extra['launch_configuration_name'] =\
-                             findtext(element=element, 
-                                      xpath='LaunchConfigurationName',
-                                      namespace=AUTOSCALE_NAMESPACE)
-        
+            findtext(element=element, xpath='LaunchConfigurationName',
+                     namespace=AUTOSCALE_NAMESPACE)
+
         return AutoScaleGroup(id=group_id, name=name, cooldown=int(cooldown),
-                                min_size=int(min_size), max_size=int(max_size),
-                                termination_policies=termination_policies,
-                                driver=self.connection.driver, extra=extra)
-    
+                              min_size=int(min_size), max_size=int(max_size),
+                              termination_policies=termination_policies,
+                              driver=self.connection.driver, extra=extra)
 
     def _to_autoscale_policies(self, res, xpath):
         return [self._to_autoscale_policy(el)
@@ -691,21 +673,21 @@ class AutoScaleDriver(NodeDriver):
     def _to_autoscale_policy(self, element):
 
         policy_id = findtext(element=element, xpath='PolicyARN',
-                               namespace=AUTOSCALE_NAMESPACE)
+                             namespace=AUTOSCALE_NAMESPACE)
         name = findtext(element=element, xpath='PolicyName',
-                             namespace=AUTOSCALE_NAMESPACE)
+                        namespace=AUTOSCALE_NAMESPACE)
         adj_type = findtext(element=element, xpath='AdjustmentType',
-                             namespace=AUTOSCALE_NAMESPACE)
+                            namespace=AUTOSCALE_NAMESPACE)
         adjustment_type = self._value_to_scale_adjustment(adj_type)
 
-        scaling_adjustment = findtext(element=element, 
+        scaling_adjustment = findtext(element=element,
                                       xpath='ScalingAdjustment',
                                       namespace=AUTOSCALE_NAMESPACE)
-        
-        return AutoScalePolicy(id=policy_id, name=name, 
-                             adjustment_type=adjustment_type,
-                             scaling_adjustment=int(scaling_adjustment),
-                             driver=self.connection.driver)
+
+        return AutoScalePolicy(id=policy_id, name=name,
+                               adjustment_type=adjustment_type,
+                               scaling_adjustment=int(scaling_adjustment),
+                               driver=self.connection.driver)
 
     def _get_balancer_names(self, element):
         """
@@ -737,8 +719,8 @@ class AutoScaleDriver(NodeDriver):
             t_p = findtext(element=item, xpath='member',
                            namespace=AUTOSCALE_NAMESPACE)
             if t_p is not None:
-                termination_policies.append(self.\
-                                            _value_to_termination_policy(t_p))
+                termination_policies.append(
+                    self._value_to_termination_policy(t_p))
 
         return termination_policies
 
@@ -786,6 +768,7 @@ class AutoScaleDriver(NodeDriver):
                 balancer_names.append(b_n)
 
 
+
 class AutoScaleUSWestDriver(AutoScaleDriver):
     """
     Driver class for AutoScale in the Western US Region
@@ -793,12 +776,14 @@ class AutoScaleUSWestDriver(AutoScaleDriver):
     name = 'Amazon AutoScale (us-west-1)'
     _region = 'us-west-1'
 
+
 class AutoScaleUSWestOregonDriver(AutoScaleDriver):
     """
     Driver class for AutoScale in the US West Oregon region.
     """
     name = 'Amazon AutoScale (us-west-2)'
     _region = 'us-west-2'
+
 
 class AutoScaleEuropeDriver(AutoScaleDriver):
     """
@@ -815,12 +800,14 @@ class CloudWatchUSWestDriver(CloudWatchDriver):
     name = 'Amazon CloudWatch (us-west-1)'
     _region = 'us-west-1'
 
+
 class CloudWatchUSWestOregonDriver(CloudWatchDriver):
     """
     Driver class for CloudWatch in the US West Oregon region.
     """
     name = 'Amazon CloudWatch (us-west-2)'
     _region = 'us-west-2'
+
 
 class CloudWatchEuropeDriver(CloudWatchDriver):
     """

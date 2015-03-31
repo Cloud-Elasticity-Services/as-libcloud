@@ -124,6 +124,7 @@ class UuidMixin(object):
     def uuid(self):
         return self.get_uuid()
 
+
 class AutoScaleGroup(UuidMixin):
     """Base class for auto scale group
     """
@@ -191,11 +192,11 @@ class AutoScalePolicy(UuidMixin):
 
     def __repr__(self):
         return (('<AutoScalePolicy: id=%s, name=%s, adjustment_type=%s, '
-                 'scaling_adjustment=%s, provider=%s>')
-                % (self.id, self.name, self.adjustment_type, 
-                   self.scaling_adjustment, self.driver.name))
-        
-# TODO: map sate value
+            'scaling_adjustment=%s, provider=%s>')
+            % (self.id, self.name, self.adjustment_type,
+               self.scaling_adjustment, self.driver.name))
+
+
 class AutoScaleAlarm(UuidMixin):
     """Base class for alarm triggering
     """
@@ -235,10 +236,11 @@ class AutoScaleAlarm(UuidMixin):
 
     def __repr__(self):
         return (('<AutoScaleAlarm: id=%s, metric_name=%s, period=%s, '
-                 'operator=%s, threshold=%s, statistic=%s, provider=%s>')
-                % (self.id, self.metric_name, self.period, 
-                   self.operator, self.threshold, 
-                   self.statistic, self.driver.name))
+            'operator=%s, threshold=%s, statistic=%s, provider=%s>')
+            % (self.id, self.metric_name, self.period,
+               self.operator, self.threshold,
+               self.statistic, self.driver.name))
+
 
 class Node(UuidMixin):
     """
@@ -1379,9 +1381,11 @@ class NodeDriver(BaseDriver):
         raise NotImplementedError(
             'delete_key_pair not implemented for this driver')
 
-    def create_auto_scale_group(self, name, min_size, max_size, cooldown, 
-                                termination_policies, image=None,
-                                balancer=None, **kwargs):
+    def create_auto_scale_group(
+        self, name, min_size, max_size, cooldown,
+        image=None,
+        termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
+        balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
         automatically. Some of the keyward arguments are driver specific
@@ -1443,7 +1447,7 @@ class NodeDriver(BaseDriver):
             'list_auto_scale_group_members not implemented for this driver')
 
     def create_auto_scale_policy(self, group, name, adjustment_type,
-                      scaling_adjustment):
+                                 scaling_adjustment):
         """
         Create an auto scale policy for the given group.
 
@@ -1474,7 +1478,7 @@ class NodeDriver(BaseDriver):
 
         :param policy: Group object.
         :type policy: :class:`.AutoScaleGroup`
-        
+
         :rtype: ``list`` of ``AutoScalePolicy``
         """
         raise NotImplementedError(
@@ -1567,7 +1571,7 @@ class NodeDriver(BaseDriver):
         :return: ``True`` if delete_auto_scale_group was successful,
         ``False`` otherwise.
         :rtype: ``bool``
-        
+
         """
         raise NotImplementedError(
             'delete_auto_scale_group not implemented for this driver')
