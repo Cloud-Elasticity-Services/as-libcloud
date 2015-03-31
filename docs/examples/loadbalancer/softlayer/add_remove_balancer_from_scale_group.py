@@ -41,12 +41,10 @@ time.sleep(60)
 # find our balancer (assuming single balancer in our datacenter with
 # given capacity)
 balancers = lb_driver.list_balancers()
-balancer = [b for b in balancers \
-            if b.extra.get('datacenter') == DATACENTER\
+balancer = [b for b in balancers
+            if b.extra.get('datacenter') == DATACENTER \
             and b.extra.get('connection_limit') == CAPACITY][0]
 print 'Created balancer: %s' % balancer
-
-
 
 # add balancer with front-end port, protocol and algorithm
 lb_driver.ex_add_service_group(balancer,
@@ -56,36 +54,28 @@ lb_driver.ex_add_service_group(balancer,
 balancer = lb_driver.get_balancer(balancer.id)
 print 'Added front-end port: %s to balancer: %s' % (FRONTEND_PORT,
                                                     balancer)
-
-
-
-
 # create scale group with balancer and backend port is 8080
 # Note: scale group members must be in same datacenter balancer is
-group = driver.create_auto_scale_group(name='libcloud-group', min_size=1,
-                             max_size=5, cooldown=300,
-                             location=NodeLocation(DATACENTER, None, None,
-                                                   None),
-                             termination_policies=AutoScaleTerminationPolicy.\
-                                                  CLOSEST_TO_NEXT_CHARGE,
-                             balancer=balancer,
-                             ex_service_port=BACKEND_PORT1,
-                             ex_region=REGION)
+group = driver.create_auto_scale_group(
+    name='libcloud-group', min_size=1, max_size=5, cooldown=300,
+    location=NodeLocation(DATACENTER, None, None, None),
+    termination_policies=AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE,
+    balancer=balancer, ex_service_port=BACKEND_PORT1, ex_region=REGION)
 
 print 'Created scale group: %s' % group
 time.sleep(60)
-
 
 driver.ex_detach_balancer_from_auto_scale_group(group, balancer)
 print 'Detached balancer: %s from scale group: %s' % (balancer, group)
 time.sleep(30)
 
 
-driver.ex_attach_balancer_to_auto_scale_group(group=group, 
+driver.ex_attach_balancer_to_auto_scale_group(group=group,
                                               balancer=balancer,
                                               ex_service_port=BACKEND_PORT2)
+
 print 'Attached balancer: %s to scale group: %s with backend port %s' %\
-      (balancer, group, BACKEND_PORT2)
+    (balancer, group, BACKEND_PORT2)
 time.sleep(30)
 
 

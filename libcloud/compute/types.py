@@ -140,7 +140,7 @@ class Provider(object):
     HPCLOUD = 'hpcloud'
     KILI = 'kili'
 
-    AWS_AUTOSCALE_US_EAST= 'aws_autoscale_us_east'
+    AWS_AUTOSCALE_US_EAST = 'aws_autoscale_us_east'
     AWS_AUTOSCALE_EU_WEST = 'aws_autoscale_eu_west'
     AWS_AUTOSCALE_US_WEST = 'aws_autoscale_us_west'
     AWS_AUTOSCALE_US_WEST_OREGON = 'aws_autoscale_us_west_oregon'
@@ -148,7 +148,7 @@ class Provider(object):
     AWS_AUTOSCALE_AP_SOUTHEAST2 = 'aws_autoscale_ap_southeast_2'
     AWS_AUTOSCALE_AP_NORTHEAST = 'aws_autoscale_ap_northeast'
     AWS_AUTOSCALE_SA_EAST = 'aws_autoscale_sa_east'
-    
+
     AWS_CLOUDWATCH_US_EAST = 'aws_cloudwatch_us_east'
     AWS_CLOUDWATCH_US_WEST = 'aws_cloudwatch_us_west'
     AWS_CLOUDWATCH_US_WEST_OREGON = 'aws_cloudwatch_us_west_oregon'
@@ -203,6 +203,7 @@ OLD_CONSTANT_TO_NEW_MAPPING = {
     Provider.RACKSPACE_NOVA_LON: Provider.RACKSPACE,
     Provider.RACKSPACE_NOVA_ORD: Provider.RACKSPACE
 }
+
 
 class AutoScaleAdjustmentType(object):
     """

@@ -18,9 +18,9 @@ from __future__ import with_statement
 from libcloud.utils.py3 import httplib
 
 from libcloud.compute.base import NodeImage, AutoScaleAlarm, AutoScalePolicy,\
-                                  AutoScaleGroup, NodeSize
+    AutoScaleGroup, NodeSize
 from libcloud.compute.types import AutoScaleAdjustmentType, AutoScaleOperator,\
-                                   AutoScaleMetric
+    AutoScaleMetric
 
 from libcloud.compute.drivers.ec2 import EC2NodeDriver
 from libcloud.compute.drivers.aws_autoscaling import AutoScaleDriver
@@ -31,13 +31,18 @@ from libcloud.test.file_fixtures import ComputeFileFixtures
 
 from libcloud.test.compute.test_ec2 import EC2MockHttp
 
-from libcloud.test import unittest
 from libcloud.test.secrets import EC2_PARAMS
+
 
 class AutoScaleTests(LibcloudTestCase):
     region = 'eu-west-1'
-    POLICY_ID = 'arn:aws:autoscaling:eu-west-1:786301965414:scalingPolicy:e1c4a42b-4777-4fbb-bac4-41e2060bf775:autoScalingGroupName/libcloud-testing:policyName/libcloud-testing-policy'
-    ALARM_ID = 'arn:aws:cloudwatch:eu-west-1:786301965414:alarm:libcloud-testing-alarm'
+    POLICY_ID = 'arn:aws:autoscaling:eu-west-1:786301965414:scalingPolicy:'\
+        'e1c4a42b-4777-4fbb-bac4-41e2060bf775:autoScalingGroupName/libcloud-'\
+        'testing:policyName/libcloud-testing-policy'
+
+    ALARM_ID = 'arn:aws:cloudwatch:eu-west-1:786301965414:alarm:libcloud-'\
+        'testing-alarm'
+
     def setUp(self):
 
         # EC2NodeDriver is needed for our auto scale tests
@@ -54,13 +59,13 @@ class AutoScaleTests(LibcloudTestCase):
         AutoScaleMockHttp.type = None
 
         self.ec2_driver = EC2NodeDriver(*EC2_PARAMS,
-                                    **{'region': self.region})
+                                        **{'region': self.region})
 
         self.as_driver = AutoScaleDriver(*EC2_PARAMS,
-                                    **{'region': self.region})
+                                         **{'region': self.region})
 
         self.cw_driver = CloudWatchDriver(*EC2_PARAMS,
-                                    **{'region': self.region})
+                                          **{'region': self.region})
 
     def test_create_auto_scale_group(self):
 
@@ -68,10 +73,10 @@ class AutoScaleTests(LibcloudTestCase):
         location = self.ec2_driver.list_locations()[0]
         size = NodeSize('t2.micro', None, None, None, None, None, None)
         group = self.as_driver.\
-        create_auto_scale_group(name='libcloud-testing',
-                                min_size=1, max_size=5, cooldown=300,
-                                image=image, location=location, size=size,
-                                termination_policies=[2])
+            create_auto_scale_group(name='libcloud-testing',
+                                    min_size=1, max_size=5, cooldown=300,
+                                    image=image, location=location, size=size,
+                                    termination_policies=[2])
 
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
@@ -84,11 +89,11 @@ class AutoScaleTests(LibcloudTestCase):
         image = NodeImage(id='ami-9a562df2', name='', driver=self.as_driver)
         location = self.ec2_driver.list_locations()[0]
         group = self.as_driver.\
-        create_auto_scale_group(name='libcloud-testing',
-                                min_size=1, max_size=5, cooldown=300,
-                                image=image, location=location,
-                                termination_policies=[2],
-                                ex_instance_name='test-node')
+            create_auto_scale_group(name='libcloud-testing',
+                                    min_size=1, max_size=5, cooldown=300,
+                                    image=image, location=location,
+                                    termination_policies=[2],
+                                    ex_instance_name='test-node')
 
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
@@ -103,22 +108,20 @@ class AutoScaleTests(LibcloudTestCase):
 
     def test_delete_group(self):
 
-        group = AutoScaleGroup('123','libcloud-testing', None, None, None, [0],
-                               self.as_driver)
+        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None,
+                               [0], self.as_driver)
         AutoScaleMockHttp.type = 'DELETE'
         self.as_driver.delete_auto_scale_group(group)
 
     def test_create_auto_scale_policy(self):
 
-        group = AutoScaleGroup('123','libcloud-testing', None, None, None, [0],
+        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None, [0],
                                self.as_driver)
 
-        policy = self.as_driver.\
-        create_auto_scale_policy(group=group,
-                                 name='libcloud-testing-policy',
-                                 adjustment_type=\
-                                 AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
-                                 scaling_adjustment=1)
+        policy = self.as_driver.create_auto_scale_policy(
+            group=group, name='libcloud-testing-policy',
+            adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
+            scaling_adjustment=1)
 
         self.assertEqual(policy.name, 'libcloud-testing-policy')
         self.assertEqual(policy.adjustment_type,
@@ -127,7 +130,7 @@ class AutoScaleTests(LibcloudTestCase):
 
     def test_list_auto_scale_policies(self):
 
-        group = AutoScaleGroup('123','libcloud-testing', None, None, None, [0],
+        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None, [0],
                                self.as_driver)
         policies = self.as_driver.list_auto_scale_policies(group=group)
         self.assertEqual(len(policies), 1)
@@ -143,13 +146,11 @@ class AutoScaleTests(LibcloudTestCase):
         policy = AutoScalePolicy(self.POLICY_ID, None, None, None,
                                  self.cw_driver)
 
-        alarm = self.cw_driver.create_auto_scale_alarm(name=\
-                                         'libcloud-testing-alarm',
-                                         policy=policy,
-                                         metric_name=AutoScaleMetric.CPU_UTIL,
-                                         operator=AutoScaleOperator.GT,
-                                         threshold=80,
-                                         period=120)
+        alarm = self.cw_driver.create_auto_scale_alarm(
+            name='libcloud-testing-alarm', policy=policy,
+            metric_name=AutoScaleMetric.CPU_UTIL,
+            operator=AutoScaleOperator.GT, threshold=80, period=120)
+
         self.assertEqual(alarm.metric_name, AutoScaleMetric.CPU_UTIL)
         self.assertEqual(alarm.operator, AutoScaleOperator.GT)
         self.assertEqual(alarm.threshold, 80)
@@ -163,10 +164,11 @@ class AutoScaleTests(LibcloudTestCase):
         self.assertEqual(len(alarms), 1)
 
     def test_delete_alarm(self):
-        
+
         alarm = AutoScaleAlarm(None, 'libcloud-testing-alarm', None, None,
                                None, None, self.cw_driver)
         self.cw_driver.delete_auto_scale_alarm(alarm)
+
 
 class AutoScaleMockHttp(MockHttpTestCase):
     fixtures = ComputeFileFixtures('aws_autoscaling')
@@ -186,7 +188,7 @@ class AutoScaleMockHttp(MockHttpTestCase):
     def _DELETE_DescribeAutoScalingGroups(self, method, url, body, headers):
 
         # simulate empty list (group had been deleted) after a few calls
-        if len([meth for meth in self.test._executed_mock_methods\
+        if len([meth for meth in self.test._executed_mock_methods
                 if meth == '_DELETE_DescribeAutoScalingGroups']) > 3:
             body = self.fixtures.load('describe_scaling_groups_empty.xml')
         else:
@@ -196,11 +198,11 @@ class AutoScaleMockHttp(MockHttpTestCase):
     def _DELETE_DeleteAutoScalingGroup(self, method, url, body, headers):
         body = self.fixtures.load('delete_scaling_group.xml')
         return (httplib.OK, body, {}, httplib.responses[httplib.OK])
-    
+
     def _DELETE_DeleteLaunchConfiguration(self, method, url, body, headers):
         body = self.fixtures.load('delete_launchconfiguration.xml')
         return (httplib.OK, body, {}, httplib.responses[httplib.OK])
-    
+
     def _PutScalingPolicy(self, method, url, body, headers):
         body = self.fixtures.load('put_scaling_policy.xml')
         return (httplib.OK, body, {}, httplib.responses[httplib.OK])

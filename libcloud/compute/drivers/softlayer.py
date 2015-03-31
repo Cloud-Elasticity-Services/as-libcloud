@@ -25,10 +25,9 @@ except ImportError:
 
 from libcloud.common.types import LibcloudError
 from libcloud.common.softlayer import SoftLayerConnection, SoftLayerException,\
-                                      SoftLayerObjectDoesntExist
+    SoftLayerObjectDoesntExist
 from libcloud.compute.types import Provider, NodeState, AutoScaleOperator,\
-                                   AutoScaleAdjustmentType, AutoScaleMetric,\
-                                   AutoScaleTerminationPolicy
+    AutoScaleAdjustmentType, AutoScaleMetric, AutoScaleTerminationPolicy
 from libcloud.compute.base import NodeDriver, Node, NodeLocation, NodeSize, \
     NodeImage, KeyPair, AutoScaleGroup, AutoScalePolicy, AutoScaleAlarm
 from libcloud.compute.types import KeyPairDoesNotExistError
@@ -156,8 +155,8 @@ class SoftLayerNodeDriver(NodeDriver):
         '<': AutoScaleOperator.LT
     }
 
-    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(\
-                                        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
+    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
 
     _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
         'RELATIVE': AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
@@ -165,27 +164,25 @@ class SoftLayerNodeDriver(NodeDriver):
         'PERCENT': AutoScaleAdjustmentType.PERCENT_CHANGE_IN_CAPACITY
     }
 
-    _SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP = reverse_dict(\
-                                       _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP)
-
+    _SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP)
 
     _VALUE_TO_TERMINATION_POLICY_MAP = {
         'OLDEST': AutoScaleTerminationPolicy.OLDEST_INSTANCE,
         'NEWEST': AutoScaleTerminationPolicy.NEWEST_INSTANCE,
-        'CLOSEST_TO_NEXT_CHARGE': AutoScaleTerminationPolicy.\
-                                     CLOSEST_TO_NEXT_CHARGE
+        'CLOSEST_TO_NEXT_CHARGE': AutoScaleTerminationPolicy.
+        CLOSEST_TO_NEXT_CHARGE
     }
 
-    _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(\
-                                       _VALUE_TO_TERMINATION_POLICY_MAP)
+    _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_TERMINATION_POLICY_MAP)
 
     _VALUE_TO_METRIC_MAP = {
         'host.cpu.percent': AutoScaleMetric.CPU_UTIL
     }
 
-    _METRIC_TO_VALUE_MAP = reverse_dict(\
-                                       _VALUE_TO_METRIC_MAP)
-
+    _METRIC_TO_VALUE_MAP = reverse_dict(
+        _VALUE_TO_METRIC_MAP)
 
     connectionCls = SoftLayerConnection
     name = 'SoftLayer'
@@ -378,15 +375,12 @@ class SoftLayerNodeDriver(NodeDriver):
             'hourlyBillingFlag': hourly,
             'operatingSystemReferenceCode': os,
             'localDiskFlag': local_disk,
-            'blockDevices': [
-                {
-                    'device': '0',
-                    'diskImage': {
-                        'capacity': disk_size,
-                    }
+            'blockDevices': [{
+                'device': '0',
+                'diskImage': {
+                    'capacity': disk_size,
                 }
-            ]
-
+            }]
         }
 
         if datacenter:
@@ -549,18 +543,18 @@ class SoftLayerNodeDriver(NodeDriver):
     def list_auto_scale_groups(self):
 
         mask = {
-                'scaleGroups': {
-                    'terminationPolicy': ''
-                }
+            'scaleGroups': {
+                'terminationPolicy': ''
+            }
         }
 
-        res = self.connection.request('SoftLayer_Account', 
-                                       'getScaleGroups', object_mask=mask).\
-                                       object
+        res = self.connection.request('SoftLayer_Account',
+                                      'getScaleGroups', object_mask=mask).\
+            object
         return self._to_autoscale_groups(res)
 
     def create_auto_scale_group(
-        self, name, min_size, max_size, cooldown, 
+        self, name, min_size, max_size, cooldown,
         image=None,
         termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
         balancer=None, **kwargs):
@@ -595,9 +589,12 @@ class SoftLayerNodeDriver(NodeDriver):
         :keyword    size: Size definition for group members instances.
         :type       size: :class:`.NodeSize`
 
-        :keyword    location: Which data center to create the members in.
-                              Datacenter must be within the given region.
-        :type       location: :class:`.NodeLocation`
+        :keyword location: Which data center to create the members in.
+        Datacenter must be within the given region.
+        :type location: :class:`.NodeLocation`
+
+        :keyword    ex_region: The region the group will be created in.
+        :type       ex_region: ``str``
 
         :keyword    ex_datacenter: The datacenter that the group members will
                                    be created in.
@@ -616,7 +613,7 @@ class SoftLayerNodeDriver(NodeDriver):
         :keyword    ex_domain: Group members domain name e.g. libcloud.org
         :type       ex_domain: ``str``
 
-        :keyword    ex_os: Operating system the group members will be created 
+        :keyword    ex_os: Operating system the group members will be created
                            with e.g. UBUNTU_LATEST.
         :type       ex_os:   ``str``
 
@@ -685,30 +682,29 @@ class SoftLayerNodeDriver(NodeDriver):
 
         r = find(res, lambda r: r['name'] == kwargs['ex_region'])
         if not r:
-            raise SoftLayerException('Unable to find region id for region: %s'\
+            raise SoftLayerException('Unable to find region id for region: %s'
                                      % kwargs['ex_region'])
         ex_region_id = r['id']
 
         import base64
         template = {
-        'startCpus': cpu_count,
-        'maxMemory': ram,
-        'networkComponents': [{'maxSpeed': bandwidth}],
-        'hourlyBillingFlag': 'true',
-        'operatingSystemReferenceCode': os,
-        'localDiskFlag': local_disk,
-        'blockDevices': [
-                        {
-                        'device': '0',
-                        'diskImage': {
-                            'capacity': disk_size
-                            }
-                        }
-                    ]
+            'startCpus': cpu_count,
+            'maxMemory': ram,
+            'networkComponents': [{'maxSpeed': bandwidth}],
+            'hourlyBillingFlag': 'true',
+            'operatingSystemReferenceCode': os,
+            'localDiskFlag': local_disk,
+            'blockDevices': [{
+                'device': '0',
+                'diskImage': {
+                    'capacity': disk_size
+                }
+            }]
         }
+
         if 'ex_userdata' in kwargs:
             template['UserData'] = \
-              [{'value': base64.b64encode(kwargs['ex_userdata'])}]
+                [{'value': base64.b64encode(kwargs['ex_userdata'])}]
 
         if 'ex_instance_name' not in kwargs:
             kwargs['ex_instance_name'] = name
@@ -739,9 +735,9 @@ class SoftLayerNodeDriver(NodeDriver):
                     time.sleep(POLL_INTERVAL)
                 else:
                     completed = True
-        
+
             if not completed:
-                raise LibcloudError('Group creation did not complete in %s' \
+                raise LibcloudError('Group creation did not complete in %s'
                                     ' seconds' % (DEFAULT_TIMEOUT))
 
         data = {}
@@ -755,11 +751,11 @@ class SoftLayerNodeDriver(NodeDriver):
 
         if termination_policies:
             termination_policy = termination_policies[0] if \
-                                 isinstance(termination_policies, list) else\
-                                 termination_policies
+                isinstance(termination_policies, list) else \
+                termination_policies
             data['terminationPolicy'] = {
-                'keyName': \
-                         self._termination_policy_to_value(termination_policy)
+                'keyName':
+                    self._termination_policy_to_value(termination_policy)
             }
 
         data['virtualGuestMemberTemplate'] = template
@@ -770,10 +766,10 @@ class SoftLayerNodeDriver(NodeDriver):
                                  ' when supplying loadbalancer')
 
             ex_service_port = kwargs.get('ex_service_port', 80)
-            data['loadBalancers'] = [self._generate_balancer_template(balancer,
-                                     ex_service_port)]
+            data['loadBalancers'] = [
+                self._generate_balancer_template(balancer, ex_service_port)]
 
-        res = self.connection.request('SoftLayer_Scale_Group', 
+        res = self.connection.request('SoftLayer_Scale_Group',
                                       'createObject', data).object
 
         _wait_for_creation(res['id'])
@@ -781,46 +777,41 @@ class SoftLayerNodeDriver(NodeDriver):
             'terminationPolicy': ''
         }
 
-        res = self.connection.request('SoftLayer_Scale_Group', 
-                                       'getObject', object_mask=mask,
-                                       id=res['id']).object
+        res = self.connection.request('SoftLayer_Scale_Group', 'getObject',
+                                      object_mask=mask, id=res['id']).object
         group = self._to_autoscale_group(res)
 
         return group
 
     def list_auto_scale_group_members(self, group):
-        """
-        List members for given auto scale group.
-        """
-        mask = { 
-                'virtualGuest': {
+        mask = {
+            'virtualGuest': {
                 'billingItem': '',
                 'powerState': '',
                 'operatingSystem': {'passwords': ''},
                 'provisionDate': ''
             }
-             }
-        res = self.connection.request('SoftLayer_Scale_Group', 
+        }
+
+        res = self.connection.request('SoftLayer_Scale_Group',
                                       'getVirtualGuestMembers',
-                                       id=group.id).object
+                                      id=group.id).object
 
         nodes = []
         for r in res:
             # NOTE: r[id]  is ID of virtual guest member
-            #(not instance itself)
-            res_node = self.connection.request(
-                'SoftLayer_Scale_Member_Virtual_Guest',
-                'getVirtualGuest', id=r['id'],
-                object_mask=mask
-            ).object
+            # (not instance itself)
+            res_node = self.connection.request('SoftLayer_Scale_Member_'
+                                               'Virtual_Guest',
+                                               'getVirtualGuest', id=r['id'],
+                                               object_mask=mask).object
 
             nodes.append(self._to_node(res_node))
 
         return nodes
 
-
     def create_auto_scale_policy(self, group, name, adjustment_type,
-                      scaling_adjustment):
+                                 scaling_adjustment):
         """
         Create an auto scale policy for the given group.
 
@@ -841,52 +832,43 @@ class SoftLayerNodeDriver(NodeDriver):
         data = {}
         data['name'] = name
         data['scaleGroupId'] = int(group.id)
- 
+
         policy_action = {}
-        policy_action['typeId'] = 1 # 'SCALE'
+        # 'SCALE'
+        policy_action['typeId'] = 1
         policy_action['scaleType'] = \
-                            self._scale_adjustment_to_value(adjustment_type)
+            self._scale_adjustment_to_value(adjustment_type)
         policy_action['amount'] = scaling_adjustment
 
         data['scaleActions'] = [policy_action]
 
         res = self.connection.request('SoftLayer_Scale_Policy',
-                                       'createObject', data).object
+                                      'createObject', data).object
         mask = {
-                'scaleActions': ''
+            'scaleActions': ''
         }
 
         res = self.connection.request('SoftLayer_Scale_Policy',
-                                       'getObject', id=res['id'],
-                                       object_mask=mask).object
+                                      'getObject', id=res['id'],
+                                      object_mask=mask).object
         policy = self._to_autoscale_policy(res)
 
         return policy
 
     def list_auto_scale_policies(self, group):
-        """
-        List policies associated with the given auto scale group
-
-        @inherits: :class:`NodeDriver.list_auto_scale_policies`
-        """
-        mask = { 
-                'policies': {
-                 'scaleActions': ''
-                }
+        mask = {
+            'policies': {
+                'scaleActions': ''
+            }
         }
+
         res = self.connection.request('SoftLayer_Scale_Group', 'getPolicies',
                                       id=group.id, object_mask=mask).object
         return [self._to_autoscale_policy(r) for r in res]
 
-
     def delete_auto_scale_policy(self, policy):
-        """Delete auto scale policy
-
-        @inherits: :class:`NodeDriver.delete_auto_scale_policy`
-        """
-
         self.connection.request('SoftLayer_Scale_Policy',
-                                 'deleteObject', id=policy.id).object
+                                'deleteObject', id=policy.id).object
         return True
 
     def create_auto_scale_alarm(self, name, policy, metric_name, operator,
@@ -922,7 +904,8 @@ class SoftLayerNodeDriver(NodeDriver):
         """
 
         data = {}
-        data['typeId'] = 3 # 'RESOURCE_USE'
+        # 'RESOURCE_USE'
+        data['typeId'] = 3
         data['scalePolicyId'] = policy.id
 
         trigger_watch = {}
@@ -930,7 +913,7 @@ class SoftLayerNodeDriver(NodeDriver):
         trigger_watch['metric'] = self._metric_to_value(metric_name)
 
         trigger_watch['operator'] = \
-                     self._operator_type_to_value(operator)
+            self._operator_type_to_value(operator)
 
         trigger_watch['value'] = threshold
         trigger_watch['period'] = period
@@ -938,49 +921,40 @@ class SoftLayerNodeDriver(NodeDriver):
         data['watches'] = [trigger_watch]
 
         res = self.connection.\
-                    request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                            'createObject', data).object
+            request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
+                    'createObject', data).object
 
         mask = {
             'watches': ''
-            }
-        
+        }
+
         res = self.connection.\
-                    request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                            'getObject', id=res['id'],
-                            object_mask=mask).object
+            request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
+                    'getObject', id=res['id'], object_mask=mask).object
         alarm = self._to_autoscale_alarm(res)
 
         return alarm
 
     def list_auto_scale_alarms(self, policy):
-        """
-        List alarms associated with the given auto scale policy
-        """
         mask = {
-                'resourceUseTriggers': {
-            'watches': ''
+            'resourceUseTriggers': {
+                'watches': ''
             }
         }
 
         res = self.connection.request('SoftLayer_Scale_Policy',
-                                 'getResourceUseTriggers', object_mask=mask,
-                                 id=policy.id).object        
+                                      'getResourceUseTriggers',
+                                      object_mask=mask, id=policy.id).object
         return [self._to_autoscale_alarm(r) for r in res]
-        
 
     def delete_auto_scale_alarm(self, alarm):
-        """Delete auto scale alarm"""
-
         self.connection.request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                                       'deleteObject', id=alarm.id).object
+                                'deleteObject', id=alarm.id).object
         return True
 
     def delete_auto_scale_group(self, group):
-        """
-        Delete group completely with all of its resources
-        """
         DEFAULT_TIMEOUT = 12000
+
         def _wait_for_deletion(group_name):
             # 5 seconds
             POLL_INTERVAL = 5
@@ -995,7 +969,7 @@ class SoftLayerNodeDriver(NodeDriver):
                     # for now treat this as not found
                     completed = True
             if not completed:
-                raise LibcloudError('Operation did not complete in %s seconds'\
+                raise LibcloudError('Operation did not complete in %s seconds'
                                     % (DEFAULT_TIMEOUT))
 
         self.connection.request(
@@ -1006,7 +980,7 @@ class SoftLayerNodeDriver(NodeDriver):
         return True
 
     def ex_attach_balancer_to_auto_scale_group(self, group, balancer,
-                                            ex_service_port=80):
+                                               ex_service_port=80):
         """
         Attach loadbalancer to auto scale group.
 
@@ -1034,9 +1008,10 @@ class SoftLayerNodeDriver(NodeDriver):
                                            id=group_id).object
 
         res = _get_group_model(group.id)
-        res['loadBalancers'].append(self._generate_balancer_template(balancer,
-                                    ex_service_port))
-        self.connection.request('SoftLayer_Scale_Group', 'editObject',res,
+        res['loadBalancers'].append(
+            self._generate_balancer_template(balancer, ex_service_port))
+
+        self.connection.request('SoftLayer_Scale_Group', 'editObject', res,
                                 id=group.id)
         return True
 
@@ -1068,16 +1043,16 @@ class SoftLayerNodeDriver(NodeDriver):
         def _get_balancer_model(balancer_id):
 
             lb_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
-            'LoadBalancer_VirtualIpAddress'
+                'LoadBalancer_VirtualIpAddress'
 
             lb_mask = {
-                    'virtualServers': {
-                        'serviceGroups': {
-                            'services': ''
-                        },
-                        'scaleLoadBalancers': {
-                        }
+                'virtualServers': {
+                    'serviceGroups': {
+                        'services': ''
+                    },
+                    'scaleLoadBalancers': {
                     }
+                }
             }
 
             lb_res = self.connection.request(lb_service, 'getObject',
@@ -1090,7 +1065,7 @@ class SoftLayerNodeDriver(NodeDriver):
             vs = None
             if port < 0:
                 vs = lb['virtualServers'][0] if lb['virtualServers']\
-                                             else None
+                    else None
             else:
                 for v in lb['virtualServers']:
                     if v['port'] == port:
@@ -1102,12 +1077,11 @@ class SoftLayerNodeDriver(NodeDriver):
         lb_res = _get_balancer_model(balancer.id)
         vs = _locate_vs(lb_res, balancer.port)
         if not vs:
-            raise LibcloudError(value='No service_group found for port: %s' %\
+            raise LibcloudError(value='No service_group found for port: %s' %
                                 balancer.port, driver=self)
-        lbs_to_remove = [lb['id'] for lb in res['loadBalancers'] if \
+        lbs_to_remove = [lb['id'] for lb in res['loadBalancers'] if
                          lb['virtualServerId'] == vs['id']]
         for lb in lbs_to_remove:
-            #res['loadBalancers'].remove(lb)
             self.connection.request('SoftLayer_Scale_LoadBalancer',
                                     'deleteObject', id=lb)
         return True
@@ -1115,28 +1089,29 @@ class SoftLayerNodeDriver(NodeDriver):
     def _generate_balancer_template(self, balancer, ex_service_port):
 
         lb_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
-        'LoadBalancer_VirtualIpAddress'
+            'LoadBalancer_VirtualIpAddress'
 
         lb_mask = {
-                'virtualServers': {
-                    'serviceGroups': {
-                    },
-                    'scaleLoadBalancers': {
-                    }
+            'virtualServers': {
+                'serviceGroups': {
+                },
+                'scaleLoadBalancers': {
                 }
+            }
         }
 
         # get the loadbalancer
-        lb_res = self.connection.request(lb_service, 'getObject',
-                                         object_mask=lb_mask, id=balancer.id).\
-                                         object
+        lb_res = self.connection.request(
+            lb_service, 'getObject', object_mask=lb_mask,
+            id=balancer.id).object
+
         # find the vs with matching balancer port
         # we need vs id for the scale template to 'connect' it
         vss = lb_res.get('virtualServers', [])
         vs = find(vss, lambda vs: vs['port'] == balancer.port)
         if not vs:
-            raise LibcloudError(value='No virtualServers found for'\
-                                ' Softlayer loadbalancer with port: %s' %\
+            raise LibcloudError(value='No virtualServers found for'
+                                ' Softlayer loadbalancer with port: %s' %
                                 balancer.port, driver=self)
 
         scale_lb_template = {
@@ -1150,14 +1125,13 @@ class SoftLayerNodeDriver(NodeDriver):
         }
         return scale_lb_template
 
-
     def _get_auto_scale_group(self, group_name):
 
         groups = self.list_auto_scale_groups()
         group = find(groups, lambda g: g.name == group_name)
         if not group:
-            raise SoftLayerObjectDoesntExist('Group name: %s does not exist'\
-                                            % group_name)
+            raise SoftLayerObjectDoesntExist('Group name: %s does not exist'
+                                             % group_name)
         return group
 
     def _get_group_status(self, group_id):
@@ -1175,15 +1149,15 @@ class SoftLayerNodeDriver(NodeDriver):
         scaling_adjustment = None
 
         if plc.get('scaleActions', []):
-                    
+
             adj_type = plc['scaleActions'][0]['scaleType']
             adjustment_type = self._value_to_scale_adjustment(adj_type)
             scaling_adjustment = plc['scaleActions'][0]['amount']
-        
-        return AutoScalePolicy(id=plc_id, name=name, 
-                             adjustment_type=adjustment_type,
-                             scaling_adjustment=scaling_adjustment,
-                             driver=self.connection.driver)
+
+        return AutoScalePolicy(id=plc_id, name=name,
+                               adjustment_type=adjustment_type,
+                               scaling_adjustment=scaling_adjustment,
+                               driver=self.connection.driver)
 
     def _to_autoscale_groups(self, res):
         groups = [self._to_autoscale_group(grp) for grp in res]
@@ -1191,14 +1165,14 @@ class SoftLayerNodeDriver(NodeDriver):
 
     def _to_autoscale_group(self, grp):
 
-        grp_id  = grp['id']
+        grp_id = grp['id']
         name = grp['name']
         cooldown = grp['cooldown']
         min_size = grp['minimumMemberCount']
         max_size = grp['maximumMemberCount']
 
         sl_tp = self._value_to_termination_policy\
-                                    (grp['terminationPolicy']['keyName'])
+            (grp['terminationPolicy']['keyName'])
         termination_policies = [sl_tp]
 
         extra = {}
@@ -1209,12 +1183,12 @@ class SoftLayerNodeDriver(NodeDriver):
         extra['regionalGroupId'] = grp['regionalGroupId']
         extra['suspendedFlag'] = grp['suspendedFlag']
         extra['terminationPolicyId'] = grp['terminationPolicyId']
-        
+
         return AutoScaleGroup(id=grp_id, name=name, cooldown=cooldown,
-                                min_size=min_size, max_size=max_size,
-                                termination_policies=termination_policies,
-                                driver=self.connection.driver,
-                                extra=extra)
+                              min_size=min_size, max_size=max_size,
+                              termination_policies=termination_policies,
+                              driver=self.connection.driver,
+                              extra=extra)
 
     def _to_autoscale_alarm(self, alrm):
 
@@ -1223,7 +1197,7 @@ class SoftLayerNodeDriver(NodeDriver):
         metric = None
         operator = None
         period = None
-        threshold =None
+        threshold = None
 
         if alrm.get('watches', []):
 
@@ -1293,5 +1267,5 @@ class SoftLayerNodeDriver(NodeDriver):
         try:
             return self._METRIC_TO_VALUE_MAP[metric]
         except KeyError:
-            raise LibcloudError(value='Invalid metric: %s'
-                                % (metric), driver=self)
+            raise LibcloudError(value='Invalid metric: %s' % (metric),
+                                driver=self)
