@@ -54,7 +54,8 @@ DRIVERS = {
     Provider.AWS_AUTOSCALE_US_WEST:
     ('libcloud.compute.drivers.aws_autoscaling', 'AutoScaleUSWestDriver'),
     Provider.AWS_AUTOSCALE_US_WEST_OREGON:
-    ('libcloud.compute.drivers.aws_autoscaling', 'AutoScaleUSWestOregonDriver'),
+    ('libcloud.compute.drivers.aws_autoscaling',
+     'AutoScaleUSWestOregonDriver'),
     Provider.AWS_AUTOSCALE_EU_WEST:
     ('libcloud.compute.drivers.aws_autoscaling', 'AutoScaleEuropeDriver'),
     Provider.AWS_CLOUDWATCH_US_EAST:
@@ -62,7 +63,7 @@ DRIVERS = {
     Provider.AWS_CLOUDWATCH_US_WEST:
     ('libcloud.compute.drivers.aws_autoscaling', 'CloudWatchUSWestDriver'),
     Provider.AWS_CLOUDWATCH_US_WEST_OREGON:
-    ('libcloud.compute.drivers.aws_autoscaling', 
+    ('libcloud.compute.drivers.aws_autoscaling',
      'CloudWatchUSWestOregonDriver'),
     Provider.AWS_CLOUDWATCH_EU_WEST:
     ('libcloud.compute.drivers.aws_autoscaling', 'CloudWatchEuropeDriver'),

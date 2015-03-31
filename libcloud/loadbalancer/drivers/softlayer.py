@@ -22,12 +22,13 @@ __all__ = [
 from libcloud.utils.misc import find, reverse_dict
 from libcloud.loadbalancer.types import MemberCondition, State
 from libcloud.loadbalancer.base import Algorithm, Driver, LoadBalancer,\
-                                       DEFAULT_ALGORITHM, Member
+    DEFAULT_ALGORITHM, Member
 from libcloud.common.softlayer import SoftLayerConnection
 from libcloud.compute.drivers.softlayer import SoftLayerNodeDriver
 
 lb_service = 'SoftLayer_Network_Application_Delivery_Controller_LoadBalancer_'\
-'VirtualIpAddress'
+    'VirtualIpAddress'
+
 
 class LBPackage(object):
 
@@ -61,9 +62,9 @@ class LBPackage(object):
         self.capacity = capacity
 
     def __repr__(self):
-        return ('<LBPackage: id=%s, name=%s, description=%s, price_id=%s, '\
-                'capacity=%s>'\
-                 % (self.id, self.name, self.description,
+        return (
+            '<LBPackage: id=%s, name=%s, description=%s, price_id=%s, '
+            'capacity=%s>' % (self.id, self.name, self.description,
                               self.price_id, self.capacity))
 
 
@@ -120,8 +121,9 @@ class SoftlayerLBDriver(Driver):
                 }
             }
         }
-        res = self.connection.request('SoftLayer_Account',
-            'getAdcLoadBalancers', object_mask=mask).object
+        res = self.connection.request(
+            'SoftLayer_Account', 'getAdcLoadBalancers',
+            object_mask=mask).object
 
         return [self._to_balancer(lb) for lb in res]
 
@@ -130,7 +132,7 @@ class SoftlayerLBDriver(Driver):
         balancers = self.list_balancers()
         balancer = find(balancers, lambda b: b.id == balancer_id)
         if not balancer:
-            raise LibcloudError(value='No balancer found for id: %s' %\
+            raise LibcloudError(value='No balancer found for id: %s' %
                                 balancer_id, driver=self)
         return balancer
 
@@ -145,20 +147,20 @@ class SoftlayerLBDriver(Driver):
     def balancer_list_members(self, balancer):
 
         lb = self._get_balancer_model(balancer.id)
-        members= []
+        members = []
         vs = self._locate_service_group(lb, balancer.port)
         if vs:
             if vs['serviceGroups']:
                 srvgrp = vs['serviceGroups'][0]
                 members = [self._to_member(srv, balancer)\
-                        for srv in srvgrp['services']]
+                    for srv in srvgrp['services']]
 
         return members
 
     def balancer_detach_member(self, balancer, member):
 
         svc_lbsrv = 'SoftLayer_Network_Application_Delivery_Controller_'\
-        'LoadBalancer_Service'
+            'LoadBalancer_Service'
 
         self.connection.request(svc_lbsrv, 'deleteObject', id=member.id)
         return True
@@ -166,12 +168,11 @@ class SoftlayerLBDriver(Driver):
     def destroy_balancer(self, balancer):
 
         res_billing = self.connection.request(lb_service, 'getBillingItem',
-                                      id=balancer.id).object
+                                              id=balancer.id).object
 
         billing_id = res_billing['id']
-        self.connection.request('SoftLayer_Billing_Item',
-                                      'cancelService',
-                                      id=billing_id)
+        self.connection.request('SoftLayer_Billing_Item', 'cancelService',
+                                id=billing_id)
         return True
 
     def ex_list_balancer_packages(self):
@@ -183,11 +184,11 @@ class SoftlayerLBDriver(Driver):
             'prices': ''
         }
         res = self.connection.request('SoftLayer_Product_Package', 'getItems',
-                                 id=0, object_mask=mask).object
+                                      id=0, object_mask=mask).object
 
         res_lb_pkgs = [r for r in res if r['description'].find\
-                       ('Load Balancer') != -1]
-        res_lb_pkgs = [r for r in res_lb_pkgs if not r['description'].\
+            ('Load Balancer') != -1]
+        res_lb_pkgs = [r for r in res_lb_pkgs if not r['description'].
                        startswith('Global')]
 
         return [self._to_lb_package(r) for r in res_lb_pkgs]
@@ -203,7 +204,7 @@ class SoftlayerLBDriver(Driver):
 
         """
         data = {
-            'complexType': 'SoftLayer_Container_Product_Order_Network_'\
+            'complexType': 'SoftLayer_Container_Product_Order_Network_'
                            'LoadBalancer',
             'quantity': 1,
             'packageId': 0,
@@ -212,12 +213,12 @@ class SoftlayerLBDriver(Driver):
         }
 
         self.connection.request('SoftLayer_Product_Order', 'placeOrder',
-                                 data)
+                                data)
         return True
 
     def ex_add_service_group(self, balancer, port=80,
-                          protocol='http', algorithm=DEFAULT_ALGORITHM,
-                          ex_allocation=100):
+                             protocol='http', algorithm=DEFAULT_ALGORITHM,
+                             ex_allocation=100):
         """
         Adds a new service group to the load balancer.
 
@@ -234,7 +235,7 @@ class SoftlayerLBDriver(Driver):
                             Algorithm.ROUND_ROBIN
         :type  algorithm: :class:`Algorithm`
 
-        :param ex_allocation: The percentage of the total connection 
+        :param ex_allocation: The percentage of the total connection
                               allocations to allocate for this group.
         :type  ex_allocation: ``int``
 
@@ -256,22 +257,21 @@ class SoftlayerLBDriver(Driver):
         service_template = {
             'port': port,
             'allocation': ex_allocation,
-            'serviceGroups': [
-                {
-                    'routingTypeId': rt['id'],
-                    'routingMethodId': meth['id']
-                }
-            ]
+            'serviceGroups': [{
+                'routingTypeId': rt['id'],
+                'routingMethodId': meth['id']
+            }]
         }
 
         # get balancer vip object
         lb = self._get_balancer_model(balancer.id)
         if len(lb['virtualServers']) > 0:
             port = lb['virtualServers'][0]['port']
-            raise LibcloudError(value='Service group (front-end port %s) already'\
-                  ' exists. Softlayer driver for current libcloud version '\
-                  'does not allow multiple service group definitions.' % port,
-                  driver=self)
+            raise LibcloudError(value='Service group (front-end port %s) '
+                                'already exists. Softlayer driver for current'
+                                'libcloud version does not allow multiple'
+                                'service group definitions.' % port,
+                                driver=self)
 
         lb['virtualServers'].append(service_template)
         self.connection.request(lb_service, 'editObject', lb, id=balancer.id)
@@ -292,33 +292,33 @@ class SoftlayerLBDriver(Driver):
         lb = self._get_balancer_model(balancer.id)
         vs = self._locate_service_group(lb, port)
         if not vs:
-            raise LibcloudError(value='No service_group found for port: %s' %\
+            raise LibcloudError(value='No service_group found for port: %s' %
                                 port, driver=self)
 
         vs_service = 'SoftLayer_Network_Application_Delivery_Controller_'\
-        'LoadBalancer_VirtualServer'
+            'LoadBalancer_VirtualServer'
         self.connection.request(vs_service, 'deleteObject', id=vs['id']).\
-                                object
+            object
 
         return True
 
     def _get_balancer_model(self, balancer_id):
 
         lb_mask = {
-                'virtualServers': {
-                    'serviceGroups': {
-                        'services': {
-                            'ipAddress': ''
-                        }
-                    },
-                    'scaleLoadBalancers': {
+            'virtualServers': {
+                'serviceGroups': {
+                    'services': {
+                        'ipAddress': ''
                     }
+                },
+                'scaleLoadBalancers': {
                 }
+            }
         }
 
         lb_res = self.connection.request(lb_service, 'getObject',
                                          object_mask=lb_mask, id=balancer_id).\
-                                         object
+            object
         return lb_res
 
     def _locate_service_group(self, lb, port):
@@ -332,7 +332,7 @@ class SoftlayerLBDriver(Driver):
         vs = None
         if port < 0:
             vs = lb['virtualServers'][0] if lb['virtualServers']\
-                                         else None
+                else None
         else:
             for v in lb['virtualServers']:
                 if v['port'] == port:
@@ -343,22 +343,22 @@ class SoftlayerLBDriver(Driver):
     def _get_routing_types(self):
 
         svc_rtype = 'SoftLayer_Network_Application_Delivery_Controller_'\
-        'LoadBalancer_Routing_Type'
+            'LoadBalancer_Routing_Type'
 
         return self.connection.request(svc_rtype, 'getAllObjects').object
 
     def _get_routing_methods(self):
 
         svc_rmeth = 'SoftLayer_Network_Application_Delivery_Controller_'\
-        'LoadBalancer_Routing_Method'
+            'LoadBalancer_Routing_Method'
 
         return self.connection.request(svc_rmeth, 'getAllObjects').object
 
     def _get_health_checks_types(self):
 
         svc_hctype = 'SoftLayer_Network_Application_Delivery_Controller_'\
-        'LoadBalancer_Health_Check_Type'
-        
+            'LoadBalancer_Health_Check_Type'
+
         return self.connection.request(svc_hctype, 'getAllObjects').object
 
     def _get_location(self, location_id):
@@ -366,7 +366,7 @@ class SoftlayerLBDriver(Driver):
         res = self.connection.request('SoftLayer_Location_Datacenter',
                                       'getDatacenters').object
 
-        dcenter = find (res, lambda d: d['name'] == location_id)
+        dcenter = find(res, lambda d: d['name'] == location_id)
         if not dcenter:
             raise LibcloudError(value='Invalid value %s' % location_id,
                                 driver=self)
@@ -392,8 +392,8 @@ class SoftlayerLBDriver(Driver):
         extra['ssl_active'] = lb['sslActiveFlag']
         extra['ssl_enabled'] = lb['sslEnabledFlag']
         extra['ha'] = lb['highAvailabilityFlag']
-        extra['datacenter'] = lb['loadBalancerHardware'][0]\
-                              ['datacenter']['name']
+        extra['datacenter'] = \
+            lb['loadBalancerHardware'][0]['datacenter']['name']
 
         # try to take the first element
         vs = self._locate_service_group(lb, -1)
@@ -405,7 +405,7 @@ class SoftlayerLBDriver(Driver):
                 routing_type = srvgrp['routingType']['keyname']
                 try:
                     extra['algorithm'] = self.\
-                                        _value_to_algorithm(routing_method)
+                        _value_to_algorithm(routing_method)
                 except:
                     pass
                 extra['protocol'] = routing_type.lower()
@@ -430,18 +430,17 @@ class SoftlayerLBDriver(Driver):
                 member_port = scale_lb['port']
                 scale_grp_id = scale_lb['scaleGroupId']
 
-                nodes = self.softlayer.list_auto_scale_group_members(\
-                                       AutoScaleGroup(scale_grp_id,
-                                       None, None, None, None, None))
+                nodes = self.softlayer.list_auto_scale_group_members(
+                    AutoScaleGroup(scale_grp_id, None, None,
+                                   None, None, None))
 
                 balancer._scale_members = [self._to_member_from_scale_lb(
-                                           n, member_port, balancer)\
-                                           for n in nodes]
+                    n, member_port, balancer) for n in nodes]
 
             if vs['serviceGroups']:
                 srvgrp = vs['serviceGroups'][0]
                 balancer._members = [self._to_member(srv, balancer)\
-                                     for srv in srvgrp['services']]
+                    for srv in srvgrp['services']]
 
         return balancer
 
@@ -457,7 +456,7 @@ class SoftlayerLBDriver(Driver):
         svc_id = svc['id']
         ip = svc['ipAddress']['ipAddress']
         port = svc['port']
-        
+
         extra = {}
         extra['status'] = svc['status']
         extra['enabled'] = svc['enabled']

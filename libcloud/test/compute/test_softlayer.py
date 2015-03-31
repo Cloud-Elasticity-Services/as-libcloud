@@ -33,10 +33,9 @@ from libcloud.compute.drivers.softlayer import SoftLayerNodeDriver as SoftLayer
 from libcloud.compute.drivers.softlayer import SoftLayerException, \
     NODE_STATE_MAP
 from libcloud.compute.base import AutoScaleAlarm, AutoScalePolicy, \
-                                  AutoScaleGroup
-from libcloud.compute.types import NodeState, KeyPairDoesNotExistError,\
-                                   AutoScaleAdjustmentType, AutoScaleMetric,\
-                                   AutoScaleOperator
+    AutoScaleGroup
+from libcloud.compute.types import NodeState, KeyPairDoesNotExistError, \
+    AutoScaleAdjustmentType, AutoScaleMetric, AutoScaleOperator
 
 from libcloud.test import MockHttp               # pylint: disable-msg=E0611
 from libcloud.test.file_fixtures import ComputeFileFixtures
@@ -45,6 +44,7 @@ from libcloud.test.secrets import SOFTLAYER_PARAMS
 null_fingerprint = '00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:' + \
                    '00:00:00:00:00'
 DELETE_GROUP_CALLS = 0
+
 
 class SoftLayerTests(unittest.TestCase):
 
@@ -181,10 +181,10 @@ class SoftLayerTests(unittest.TestCase):
 
     def test_create_auto_scale_group(self):
 
-        group = self.driver.create_auto_scale_group(name="libcloud-testing",
-                                       min_size=1, max_size=5, cooldown=300,
-                                       image=self.driver.list_images()[0],
-                                       termination_policies=2)
+        group = self.driver.create_auto_scale_group(
+            name="libcloud-testing", min_size=1, max_size=5, cooldown=300,
+            image=self.driver.list_images()[0], termination_policies=2)
+
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
         self.assertEqual(group.min_size, 1)
@@ -193,11 +193,11 @@ class SoftLayerTests(unittest.TestCase):
 
     def test_create_auto_scale_group_size(self):
 
-        group = self.driver.create_auto_scale_group(name="libcloud-testing",
-                                       min_size=1, max_size=5, cooldown=300,
-                                       image=self.driver.list_images()[0],
-                                       size=self.driver.list_sizes()[0],
-                                       termination_policies=2)
+        group = self.driver.create_auto_scale_group(
+            name="libcloud-testing", min_size=1, max_size=5, cooldown=300,
+            image=self.driver.list_images()[0],
+            size=self.driver.list_sizes()[0], termination_policies=2)
+
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
         self.assertEqual(group.min_size, 1)
@@ -211,14 +211,14 @@ class SoftLayerTests(unittest.TestCase):
 
     def test_create_auto_scale_policy(self):
 
-        group = AutoScaleGroup(145955,'libcloud-testing', None, None, None, 0,
+        group = AutoScaleGroup(145955, 'libcloud-testing', None, None, None, 0,
                                self.driver)
 
-        policy = self.driver.\
-        create_auto_scale_policy(group=group, name='libcloud-testing-policy',
-                                 adjustment_type=\
-                                 AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
-                                 scaling_adjustment=1)
+        policy = self.driver.create_auto_scale_policy(
+            group=group, name='libcloud-testing-policy',
+            adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
+            scaling_adjustment=1)
+
         self.assertEqual(policy.name, 'libcloud-testing-policy')
         self.assertEqual(policy.adjustment_type,
                          AutoScaleAdjustmentType.CHANGE_IN_CAPACITY)
@@ -226,7 +226,7 @@ class SoftLayerTests(unittest.TestCase):
 
     def test_list_auto_scale_policies(self):
 
-        group = AutoScaleGroup(167555,'libcloud-testing', None, None, None, 0,
+        group = AutoScaleGroup(167555, 'libcloud-testing', None, None, None, 0,
                                self.driver)
         policies = self.driver.list_auto_scale_policies(group=group)
         self.assertEqual(len(policies), 1)
@@ -236,11 +236,11 @@ class SoftLayerTests(unittest.TestCase):
         policy = AutoScalePolicy(45955, None, None, None,
                                  self.driver)
 
-        alarm = self.driver.create_auto_scale_alarm(name='libcloud-testing-alarm',
-                                         policy=policy,
-                                         metric_name=AutoScaleMetric.CPU_UTIL,
-                                         operator=AutoScaleOperator.GT,
-                                         threshold=80, period=120)
+        alarm = self.driver.create_auto_scale_alarm(
+            name='libcloud-testing-alarm', policy=policy,
+            metric_name=AutoScaleMetric.CPU_UTIL,
+            operator=AutoScaleOperator.GT, threshold=80, period=120)
+
         self.assertEqual(alarm.metric_name, AutoScaleMetric.CPU_UTIL)
         self.assertEqual(alarm.operator, AutoScaleOperator.GT)
         self.assertEqual(alarm.threshold, 80)
@@ -266,12 +266,13 @@ class SoftLayerTests(unittest.TestCase):
 
     def test_delete_group(self):
 
-        group = AutoScaleGroup(145955,'libcloud-testing', None, None, None, 0,
+        group = AutoScaleGroup(145955, 'libcloud-testing', None, None, None, 0,
                                self.driver)
         SoftLayerMockHttp.type = 'DELETE'
         global DELETE_GROUP_CALLS
         DELETE_GROUP_CALLS = 0
         self.driver.delete_auto_scale_group(group)
+
 
 class SoftLayerMockHttp(MockHttp):
     fixtures = ComputeFileFixtures('softlayer')
@@ -380,7 +381,7 @@ class SoftLayerMockHttp(MockHttp):
 
     def _xmlrpc_v3_SoftLayer_Account_getScaleGroups(
             self, method, url, body, headers):
-        
+
         global DELETE_GROUP_CALLS
         if self.type == 'DELETE':
             if DELETE_GROUP_CALLS > 3:

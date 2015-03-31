@@ -31,6 +31,7 @@ __all__ = [
     'get_secure_random_string'
 ]
 
+
 def find(l, predicate):
     results = [x for x in l if predicate(x)]
     return results[0] if len(results) > 0 else None

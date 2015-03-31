@@ -42,17 +42,20 @@ class LibcloudError(Exception):
                 " " +
                 repr(self.value) + ">")
 
+
 class ResourceNotFoundError(LibcloudError):
-    """Exception for the cases where specific resource can not 
+    """Exception for the cases where specific resource can not
     be found
     """
     pass
 
+
 class ResourceExistsError(LibcloudError):
-    """Exception for the cases where specific resource already 
+    """Exception for the cases where specific resource already
     exists
     """
     pass
+
 
 class MalformedResponseError(LibcloudError):
     """Exception for the cases when a provider returns a malformed
