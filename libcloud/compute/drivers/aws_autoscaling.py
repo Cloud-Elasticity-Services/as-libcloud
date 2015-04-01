@@ -179,6 +179,9 @@ class CloudWatchDriver(NodeDriver):
         :keyword    ex_namespace: The namespace for the alarm's associated
                                   metric.
         :type       ex_namespace: ``str``
+
+        :return: The newly created alarm.
+        :rtype: :class:`.AutoScaleAlarm`
         """
         data = {}
         data['AlarmActions.member.1'] = policy.id
@@ -422,6 +425,8 @@ class AutoScaleDriver(NodeDriver):
         :keyword    ex_userdata: User data to be injected to group members.
         :type       ex_userdata: ``str``
 
+        :return: The newly created scale group.
+        :rtype: :class:`.AutoScaleGroup`
         """
         DEFAULT_FLAVOR = 't2.micro'
         template = {
@@ -539,6 +544,9 @@ class AutoScaleDriver(NodeDriver):
 
         :param scaling_adjustment: The number of instances by which to scale.
         :type scaling_adjustment: ``int``
+
+        :return: The newly created policy.
+        :rtype: :class:`.AutoScalePolicy`
         """
 
         data = {}
