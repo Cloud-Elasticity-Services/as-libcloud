@@ -379,9 +379,9 @@ class AutoScaleDriver(NodeDriver):
                                               port=port, **kwargs)
 
     def create_auto_scale_group(
-        self, name, min_size, max_size, cooldown, image,
-        termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-        balancer=None, **kwargs):
+            self, name, min_size, max_size, cooldown, image,
+            termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
+            balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
