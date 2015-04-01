@@ -631,6 +631,8 @@ class SoftLayerNodeDriver(NodeDriver):
         :keyword    ex_userdata: User data to be injected to group members.
         :type       ex_userdata: ``str``
 
+        :return: The newly created scale group.
+        :rtype: :class:`.AutoScaleGroup`
         """
         DEFAULT_REGION = 'eu-deu-west-1'
         DEFAULT_TIMEOUT = 12000
@@ -827,6 +829,9 @@ class SoftLayerNodeDriver(NodeDriver):
 
         :param scaling_adjustment: The number of instances by which to scale.
         :type scaling_adjustment: ``int``
+
+        :return: The newly created policy.
+        :rtype: :class:`.AutoScalePolicy`
         """
         data = {}
         data['name'] = name
@@ -900,6 +905,8 @@ class SoftLayerNodeDriver(NodeDriver):
                        compared to threshold.
         :type period: ``int``
 
+        :return: The newly created alarm.
+        :rtype: :class:`.AutoScaleAlarm`
         """
 
         data = {}
@@ -993,7 +1000,7 @@ class SoftLayerNodeDriver(NodeDriver):
         :type  ex_service_port: ``int``
 
         :return: ``True`` if attach_balancer_to_auto_scale_group was
-        successful, ``False`` otherwise.
+        successful.
         :rtype: ``bool``
         """
         def _get_group_model(group_id):
@@ -1025,7 +1032,7 @@ class SoftLayerNodeDriver(NodeDriver):
         :type balancer: :class:`.LoadBalancer`
 
         :return: ``True`` if detach_balancer_from_auto_scale_group was
-        successful, ``False`` otherwise.
+        successful.
         :rtype: ``bool``
         """
 

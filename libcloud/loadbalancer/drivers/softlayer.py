@@ -202,6 +202,8 @@ class SoftlayerLBDriver(Driver):
         :param string location: The location to create the loadbalancer
         :type location: :class:`NodeLocation`
 
+        :return: ``True`` if ex_place_balancer_order was successful.
+        :rtype: ``bool``
         """
         data = {
             'complexType': 'SoftLayer_Container_Product_Order_Network_'
@@ -239,6 +241,8 @@ class SoftlayerLBDriver(Driver):
                               allocations to allocate for this group.
         :type  ex_allocation: ``int``
 
+        :return: ``True`` if ex_add_service_group was successful.
+        :rtype: ``bool``
         """
         _types = self._get_routing_types()
         _methods = self._get_routing_methods()
@@ -287,6 +291,8 @@ class SoftlayerLBDriver(Driver):
         :param port: Port of the service group to be removed.
         :type  port: ``int``
 
+        :return: ``True`` if ex_delete_service_group was successful.
+        :rtype: ``bool``
         """
 
         lb = self._get_balancer_model(balancer.id)
