@@ -41,9 +41,10 @@ time.sleep(60)
 # find our balancer (assuming single balancer in our datacenter with
 # given capacity)
 balancers = lb_driver.list_balancers()
-balancer = [b for b in balancers
-            if b.extra.get('datacenter') == DATACENTER \
-            and b.extra.get('connection_limit') == CAPACITY][0]
+balancer = [b for b in balancers if
+            b.extra.get('datacenter') == DATACENTER and
+            b.extra.get('connection_limit') == CAPACITY][0]
+
 print 'Created balancer: %s' % balancer
 
 # add balancer with front-end port, protocol and algorithm

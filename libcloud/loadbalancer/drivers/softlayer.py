@@ -152,8 +152,8 @@ class SoftlayerLBDriver(Driver):
         if vs:
             if vs['serviceGroups']:
                 srvgrp = vs['serviceGroups'][0]
-                members = [self._to_member(srv, balancer)\
-                    for srv in srvgrp['services']]
+                members = [self._to_member(srv, balancer) for
+                           srv in srvgrp['services']]
 
         return members
 
@@ -186,8 +186,8 @@ class SoftlayerLBDriver(Driver):
         res = self.connection.request('SoftLayer_Product_Package', 'getItems',
                                       id=0, object_mask=mask).object
 
-        res_lb_pkgs = [r for r in res if r['description'].find\
-            ('Load Balancer') != -1]
+        res_lb_pkgs = [r for r in res if r['description'].find
+                       ('Load Balancer') != -1]
         res_lb_pkgs = [r for r in res_lb_pkgs if not r['description'].
                        startswith('Global')]
 
@@ -439,8 +439,8 @@ class SoftlayerLBDriver(Driver):
 
             if vs['serviceGroups']:
                 srvgrp = vs['serviceGroups'][0]
-                balancer._members = [self._to_member(srv, balancer)\
-                    for srv in srvgrp['services']]
+                balancer._members = [self._to_member(srv, balancer)
+                                     for srv in srvgrp['services']]
 
         return balancer
 

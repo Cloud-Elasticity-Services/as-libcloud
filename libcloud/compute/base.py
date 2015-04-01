@@ -191,10 +191,11 @@ class AutoScalePolicy(UuidMixin):
         UuidMixin.__init__(self)
 
     def __repr__(self):
-        return (('<AutoScalePolicy: id=%s, name=%s, adjustment_type=%s, '
-            'scaling_adjustment=%s, provider=%s>')
-            % (self.id, self.name, self.adjustment_type,
-               self.scaling_adjustment, self.driver.name))
+        return (
+            ('<AutoScalePolicy: id=%s, name=%s, adjustment_type=%s, '
+             'scaling_adjustment=%s, provider=%s>') % (
+                 self.id, self.name, self.adjustment_type,
+                 self.scaling_adjustment, self.driver.name))
 
 
 class AutoScaleAlarm(UuidMixin):
@@ -235,11 +236,12 @@ class AutoScaleAlarm(UuidMixin):
         UuidMixin.__init__(self)
 
     def __repr__(self):
-        return (('<AutoScaleAlarm: id=%s, metric_name=%s, period=%s, '
-            'operator=%s, threshold=%s, statistic=%s, provider=%s>')
-            % (self.id, self.metric_name, self.period,
-               self.operator, self.threshold,
-               self.statistic, self.driver.name))
+        return (
+            ('<AutoScaleAlarm: id=%s, metric_name=%s, period=%s, '
+             'operator=%s, threshold=%s, statistic=%s, '
+             'provider=%s>') % (self.id, self.metric_name, self.period,
+                                self.operator, self.threshold,
+                                self.statistic, self.driver.name))
 
 
 class Node(UuidMixin):
@@ -1382,10 +1384,9 @@ class NodeDriver(BaseDriver):
             'delete_key_pair not implemented for this driver')
 
     def create_auto_scale_group(
-        self, name, min_size, max_size, cooldown,
-        image=None,
-        termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-        balancer=None, **kwargs):
+            self, name, min_size, max_size, cooldown, image=None,
+            termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
+            balancer=None, **kwargs):
         """
         Create a new auto scale group. Group's instances will be started
         automatically. Some of the keyward arguments are driver specific

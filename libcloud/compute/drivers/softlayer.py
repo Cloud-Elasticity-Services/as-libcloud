@@ -554,10 +554,9 @@ class SoftLayerNodeDriver(NodeDriver):
         return self._to_autoscale_groups(res)
 
     def create_auto_scale_group(
-        self, name, min_size, max_size, cooldown,
-        image=None,
-        termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-        balancer=None, **kwargs):
+            self, name, min_size, max_size, cooldown, image=None,
+            termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
+            balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
@@ -1171,8 +1170,8 @@ class SoftLayerNodeDriver(NodeDriver):
         min_size = grp['minimumMemberCount']
         max_size = grp['maximumMemberCount']
 
-        sl_tp = self._value_to_termination_policy\
-            (grp['terminationPolicy']['keyName'])
+        sl_tp = self._value_to_termination_policy(
+            grp['terminationPolicy']['keyName'])
         termination_policies = [sl_tp]
 
         extra = {}
