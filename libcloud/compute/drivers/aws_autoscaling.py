@@ -760,22 +760,6 @@ class AutoScaleDriver(NodeDriver):
             raise LibcloudError(value='Invalid termination policy: %s'
                                 % (termination_policy), driver=self)
 
-    def _get_balancer_names(self, element):
-        """
-        Parse load balancer names from the provided element and return a
-        list of therse.
-
-        :rtype: ``list`` of ``str``
-        """
-        balancer_names = []
-        for item in findall(element=element, xpath='LoadBalancerNames',
-                            namespace=AUTOSCALE_NAMESPACE):
-            b_n = findtext(element=item, xpath='member',
-                           namespace=AUTOSCALE_NAMESPACE)
-            if b_n is not None:
-                balancer_names.append(b_n)
-
-
 
 class AutoScaleUSWestDriver(AutoScaleDriver):
     """
