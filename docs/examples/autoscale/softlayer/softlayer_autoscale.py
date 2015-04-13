@@ -26,7 +26,7 @@ group = as_driver.create_auto_scale_group(
     group_name='libcloud-group', min_size=2, max_size=5,
     cooldown=300,
     termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
-    image=image, size=size, location=location,
+    name='inst-test', image=image, size=size, location=location,
     ex_region='na-usa-central-1')
 
 pprint(group)

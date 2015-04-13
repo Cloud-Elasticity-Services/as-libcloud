@@ -14,14 +14,16 @@ from libcloud.loadbalancer.providers import get_driver as lb_get_driver
 ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
 
-IMAGE_ID = 'ami-5c120b19'
+IMAGE_ID = 'ami-d114f295'
 SIZE_ID = 't2.small'
 
 REGION = 'us-west-1'
 
-ec2_driver = compute_get_driver(compute_provider.EC2)(ACCESS_ID, SECRET_KEY)
+ec2_driver = compute_get_driver(
+    compute_provider.EC2)(ACCESS_ID, SECRET_KEY, region=REGION)
 
-as_driver = as_get_driver(as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
+as_driver = as_get_driver(
+    as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY, region=REGION)
 
 lb_driver = lb_get_driver(lb_provider.ELB)(ACCESS_ID, SECRET_KEY, REGION)
 
@@ -44,7 +46,7 @@ print(balancer)
 # create scale group with balancer (group and balancer are
 # in same availability zone)
 group = as_driver.create_auto_scale_group(
-    name='libcloud-balancer-group', min_size=2, max_size=5,
+    group_name='libcloud-balancer-group', min_size=2, max_size=5,
     cooldown=300,
     termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
     balancer=balancer, name='test-node', image=image, size=size)

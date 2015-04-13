@@ -341,7 +341,7 @@ class AWSCloudWatchDriver(AutoScaleDriver):
 class AutoScaleResponse(AWSGenericResponse):
 
     namespace = AUTOSCALE_NAMESPACE
-#     xpath = 'Error'
+    xpath = 'Error'
 #     exceptions = {
 #         'AlreadyExists': ResourceExistsError
 #     }
