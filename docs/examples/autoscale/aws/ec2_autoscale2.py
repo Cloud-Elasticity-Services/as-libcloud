@@ -11,7 +11,7 @@ from libcloud.autoscale.providers import get_driver
 ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
 
-IMAGE_ID = 'ami-5c120b19'
+IMAGE_ID = 'ami-1ecae776'
 SIZE_ID = 't2.small'
 
 cls = compute_get_driver(compute_provider.EC2)
