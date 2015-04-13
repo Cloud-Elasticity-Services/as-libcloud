@@ -238,6 +238,7 @@ class SoftLayerNodeDriver(NodeDriver):
         recurringFee = host.get('billingItem', {}).get('recurringFee', 0)
         recurringMonths = host.get('billingItem', {}).get('recurringMonths', 0)
         createDate = host.get('createDate', None)
+        provision = host.get('provisionDate', None)
 
         # When machine is launching it gets state halted
         # we change this to pending
@@ -279,6 +280,7 @@ class SoftLayerNodeDriver(NodeDriver):
                 'recurringFee': recurringFee,
                 'recurringMonths': recurringMonths,
                 'created': createDate,
+                'provision': provision
             }
         )
 
@@ -612,7 +614,8 @@ class SoftLayerNodeDriver(NodeDriver):
                 object_mask=mask
             ).object
 
-            nodes.append(self._to_node(res_node))
+            if res_node:
+                nodes.append(self._to_node(res_node))
 
         return nodes
 
