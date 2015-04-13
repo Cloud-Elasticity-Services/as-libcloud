@@ -807,7 +807,8 @@ class SoftLayerNodeDriver(NodeDriver):
                                                'getVirtualGuest', id=r['id'],
                                                object_mask=mask).object
 
-            nodes.append(self._to_node(res_node))
+            if res_node:
+                nodes.append(self._to_node(res_node))
 
         return nodes
 
