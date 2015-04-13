@@ -26,11 +26,13 @@ except ImportError:
     from xml.etree import ElementTree as ET
 
 from libcloud.common.base import ConnectionUserAndKey, XmlResponse, BaseDriver
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from libcloud.common.types import LibcloudError, InvalidCredsError, \
+    MalformedResponseError
 from libcloud.utils.py3 import b, httplib, urlquote
 from libcloud.utils.xml import findtext, findall
 
 __all__ = [
+    'AWSObjectDoesntExist',
     'AWSBaseResponse',
     'AWSGenericResponse',
 
@@ -44,6 +46,12 @@ __all__ = [
 ]
 
 DEFAULT_SIGNATURE_VERSION = '2'
+
+class AWSObjectDoesntExist(LibcloudError):
+    """
+    Exception class for AWS driver object doesnt exist
+    """
+    pass
 
 
 class AWSBaseResponse(XmlResponse):

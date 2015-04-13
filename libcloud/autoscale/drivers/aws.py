@@ -12,26 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import base64
 import time
 
+from libcloud.utils.py3 import b
+
 from libcloud.utils.misc import reverse_dict
 from libcloud.utils.xml import fixxpath, findtext, findall
-from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse
-from libcloud.common.types import LibcloudError, ResourceNotFoundError, \
-    ResourceExistsError
-from libcloud.compute.providers import Provider
-from libcloud.compute.base import NodeDriver, AutoScaleGroup, AutoScalePolicy,\
-    AutoScaleAlarm
+from libcloud.common.aws import SignedAWSConnection, AWSGenericResponse,\
+    AWSObjectDoesntExist
+from libcloud.common.aws import DEFAULT_SIGNATURE_VERSION
+from libcloud.common.types import LibcloudError
+from libcloud.autoscale.providers import Provider
+from libcloud.autoscale.base import AutoScaleDriver, AutoScaleGroup,\
+    AutoScalePolicy, AutoScaleAlarm
 from libcloud.compute.drivers.ec2 import EC2NodeDriver, EC2Connection,\
     EC2Response
-from libcloud.compute.types import AutoScaleAdjustmentType, AutoScaleOperator,\
-    AutoScaleMetric, AutoScaleTerminationPolicy
+from libcloud.autoscale.types import AutoScaleAdjustmentType, \
+    AutoScaleOperator, AutoScaleMetric, AutoScaleTerminationPolicy
 
 AUTOSCALE_API_VERSION = '2011-01-01'
 AUTOSCALE_NAMESPACE = 'http://autoscaling.amazonaws.com/doc/%s/' % \
-                      (AUTOSCALE_API_VERSION)
+    (AUTOSCALE_API_VERSION)
 
 AUTOSCALE_REGION_DETAILS = {
     # US East (Northern Virginia) Region
@@ -56,9 +58,38 @@ AUTOSCALE_REGION_DETAILS = {
         'endpoint': 'autoscaling.eu-west-1.amazonaws.com',
         'api_name': 'autoscaling_eu_west',
         'country': 'Ireland'
+    },
+    # EU (Frankfurt)
+    'eu-central-1': {
+        'endpoint': 'autoscaling.eu-central-1.amazonaws.com',
+        'api_name': 'autoscaling_eu_central',
+        'country': 'Germany'
+    },
+    # Asia Pacific (Singapore)
+    'ap-southeast-1': {
+        'endpoint': 'autoscaling.ap-southeast-1.amazonaws.com',
+        'api_name': 'autoscaling_ap_southeast',
+        'country': 'Singapore'
+    },
+    # Asia Pacific (Sydney)
+    'ap-southeast-2': {
+        'endpoint': 'autoscaling.ap-southeast-2.amazonaws.com',
+        'api_name': 'autoscaling_ap_southeast_2',
+        'country': 'Australia'
+    },
+    # Asia Pacific (Tokyo)
+    'ap-northeast-1': {
+        'endpoint': 'autoscaling.ap-northeast-1.amazonaws.com',
+        'api_name': 'autoscaling_ap_northeast',
+        'country': 'Japan'
+    },
+    # South America (Sao Paulo)
+    'sa-east-1': {
+        'endpoint': 'autoscaling.sa-east-1.amazonaws.com',
+        'api_name': 'autoscaling_sa_east',
+        'country': 'Brazil'
     }
 }
-
 
 CLOUDWATCH_API_VERSION = '2010-08-01'
 CLOUDWATCH_NAMESPACE = 'http://monitoring.amazonaws.com/doc/%s/' %\
@@ -83,10 +114,41 @@ CLOUDWATCH_REGION_DETAILS = {
         'api_name': 'cloudwatch_us_west_oregon',
         'country': 'USA'
     },
+    # EU (Ireland)
     'eu-west-1': {
         'endpoint': 'monitoring.eu-west-1.amazonaws.com',
         'api_name': 'cloudwatch_eu_west',
         'country': 'Ireland'
+    },
+    # EU (Frankfurt)
+    'eu-central-1': {
+        'endpoint': 'monitoring.eu-central-1.amazonaws.com',
+        'api_name': 'cloudwatch_eu_central',
+        'country': 'Germany'
+    },
+    # Asia Pacific (Singapore)
+    'ap-southeast-1': {
+        'endpoint': 'monitoring.ap-southeast-1.amazonaws.com',
+        'api_name': 'cloudwatch_ap_southeast',
+        'country': 'Singapore'
+    },
+    # Asia Pacific (Sydney)
+    'ap-southeast-2': {
+        'endpoint': 'monitoring.ap-southeast-2.amazonaws.com',
+        'api_name': 'cloudwatch_ap_southeast_2',
+        'country': 'Australia'
+    },
+    # Asia Pacific (Tokyo)
+    'ap-northeast-1': {
+        'endpoint': 'monitoring.ap-northeast-1.amazonaws.com',
+        'api_name': 'cloudwatch_ap_northeast',
+        'country': 'Japan'
+    },
+    # South America (Sao Paulo)
+    'sa-east-1': {
+        'endpoint': 'monitoring.sa-east-1.amazonaws.com',
+        'api_name': 'cloudwatch_sa_east',
+        'country': 'Japan'
     }
 }
 
@@ -104,7 +166,7 @@ class CloudWatchConnection(SignedAWSConnection):
     responseCls = EC2Response
 
 
-class CloudWatchDriver(NodeDriver):
+class AWSCloudWatchDriver(AutoScaleDriver):
 
     _VALUE_TO_SCALE_OPERATOR_TYPE_MAP = {
         'GreaterThanOrEqualToThreshold': AutoScaleOperator.GE,
@@ -145,9 +207,9 @@ class CloudWatchDriver(NodeDriver):
 
         host = host or details['endpoint']
 
-        super(CloudWatchDriver, self).__init__(key=key, secret=secret,
-                                               secure=secure, host=host,
-                                               port=port, **kwargs)
+        super(AWSCloudWatchDriver, self).__init__(key=key, secret=secret,
+                                                  secure=secure, host=host,
+                                                  port=port, **kwargs)
 
     def create_auto_scale_alarm(self, name, policy, metric_name, operator,
                                 threshold, period, **kwargs):
@@ -275,49 +337,19 @@ class CloudWatchDriver(NodeDriver):
                               threshold=int(float(threshold)),
                               driver=self.connection.driver, extra=extra)
 
-    def _value_to_operator_type(self, value):
-
-        try:
-            return self._VALUE_TO_SCALE_OPERATOR_TYPE_MAP[value]
-        except KeyError:
-            raise LibcloudError(value='Invalid value: %s' % (value),
-                                driver=self)
-
-    def _operator_type_to_value(self, operator_type):
-        try:
-            return self._SCALE_OPERATOR_TYPE_TO_VALUE_MAP[operator_type]
-        except KeyError:
-            raise LibcloudError(value='Invalid operator type: %s'
-                                % (operator_type), driver=self)
-
-    def _value_to_metric(self, value):
-
-        try:
-            return self._VALUE_TO_METRIC_MAP[value]
-        except KeyError:
-            raise LibcloudError(value='Invalid value: %s' % (value),
-                                driver=self)
-
-    def _metric_to_value(self, metric):
-        try:
-            return self._METRIC_TO_VALUE_MAP[metric]
-        except KeyError:
-            raise LibcloudError(value='Invalid metric: %s'
-                                % (metric), driver=self)
-
 
 class AutoScaleResponse(AWSGenericResponse):
 
     namespace = AUTOSCALE_NAMESPACE
-    xpath = 'Error'
-    exceptions = {
-        'AlreadyExists': ResourceExistsError
-    }
+#     xpath = 'Error'
+#     exceptions = {
+#         'AlreadyExists': ResourceExistsError
+#     }
 
 
 class AutoScaleConnection(EC2Connection):
     """
-    Represents a single connection to the EC2 Endpoint.
+    Represents a single connection to the AutoScaling Endpoint.
     """
 
     version = AUTOSCALE_API_VERSION
@@ -326,7 +358,7 @@ class AutoScaleConnection(EC2Connection):
     responseCls = AutoScaleResponse
 
 
-class AutoScaleDriver(NodeDriver):
+class AWSAutoScaleDriver(AutoScaleDriver):
 
     connectionCls = AutoScaleConnection
 
@@ -334,6 +366,7 @@ class AutoScaleDriver(NodeDriver):
     name = 'Amazon EC2'
     website = 'http://aws.amazon.com/ec2/'
     path = '/'
+    signature_version = DEFAULT_SIGNATURE_VERSION
 
     _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
         'ChangeInCapacity': AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
@@ -371,56 +404,35 @@ class AutoScaleDriver(NodeDriver):
 
         host = host or details['endpoint']
 
+        self.signature_version = details.pop('signature_version',
+                                             DEFAULT_SIGNATURE_VERSION)
+
         if kwargs.get('ec2_driver'):
             self.ec2 = kwargs['ec2_driver']
         else:
             self.ec2 = EC2NodeDriver(key, secret=secret, region=region,
                                      **kwargs)
 
-        super(AutoScaleDriver, self).__init__(key=key, secret=secret,
-                                              secure=secure, host=host,
-                                              port=port, **kwargs)
+        super(AWSAutoScaleDriver, self).__init__(key=key, secret=secret,
+                                                 secure=secure, host=host,
+                                                 port=port, **kwargs)
 
     def create_auto_scale_group(
-            self, name, min_size, max_size, cooldown, image,
-            termination_policies=AutoScaleTerminationPolicy.OLDEST_INSTANCE,
-            balancer=None, **kwargs):
+            self, group_name, min_size, max_size, cooldown,
+            termination_policies, **kwargs):
         """
         Create a new auto scale group.
 
-        @inherits: :class:`NodeDriver.create_auto_scale_group`
-
-        :param name: Group name.
-        :type name: ``str``
-
-        :param min_size: Minimum membership size of group.
-        :type min_size: ``int``
-
-        :param max_size: Maximum membership size of group.
-        :type max_size: ``int``
-
-        :param cooldown: Group cooldown (in seconds).
-        :type cooldown: ``int``
-
-        :param termination_policies: Termination policy for this group.
-        :type termination_policies: value or list of values within
-                                  :class:`AutoScaleTerminationPolicy`
-
-        :param image: The image to create the member with.
-        :type image: :class:`.NodeImage`
-
-        :keyword    size: Size definition for group members instances.
-        :type       size: :class:`.NodeSize`
-
-        :keyword location: Which availability zone to create the members in.
-                           Availability zone must be within driver's region.
-        :type location: :class:`.NodeLocation`
+        @inherits: :class:`AutoScaleDriver.create_auto_scale_group`
 
         :keyword    ex_launch_configuration_name: Launch configuration name.
         :type       ex_launch_configuration_name: ``str``
 
-        :keyword    ex_instance_name: The name of the group members instances.
-        :type       ex_instance_name: ``str``
+        :keyword    ex_keyname: The name of the key pair
+        :type       ex_keyname: ``str``
+
+        :keyword    ex_iamprofile: Name or ARN of IAM profile
+        :type       ex_iamprofile: ``str``
 
         :keyword    ex_userdata: User data to be injected to group members.
         :type       ex_userdata: ``str``
@@ -428,27 +440,10 @@ class AutoScaleDriver(NodeDriver):
         :return: The newly created scale group.
         :rtype: :class:`.AutoScaleGroup`
         """
-        DEFAULT_FLAVOR = 't2.micro'
-        template = {
-            'ImageId': image.id
-        }
-
-        if 'ex_launch_configuration_name' in kwargs:
-            template['LaunchConfigurationName'] = \
-                kwargs['ex_launch_configuration_name']
-        else:
-            template['LaunchConfigurationName'] = name
-
-        if 'ex_userdata' in kwargs:
-            template['UserData'] = base64.b64encode(kwargs['ex_userdata'])
-
-        if kwargs.get('size'):
-            template['InstanceType'] = kwargs['size'].id
-        else:
-            template['InstanceType'] = DEFAULT_FLAVOR
+        template = self._to_virtual_guest_template(**kwargs)
 
         data = {}
-        data['AutoScalingGroupName'] = name
+        data['AutoScalingGroupName'] = group_name
         data['LaunchConfigurationName'] = template['LaunchConfigurationName']
         data['MinSize'] = min_size
         data['MaxSize'] = max_size
@@ -472,22 +467,18 @@ class AutoScaleDriver(NodeDriver):
 
         data['AvailabilityZones.member.1'] = a_z
 
-        if 'ex_instance_name' in kwargs:
+        if 'name' in kwargs:
             data['Tags.member.1.Key'] = 'Name'
-            data['Tags.member.1.Value'] = kwargs['ex_instance_name']
+            data['Tags.member.1.Value'] = kwargs['name']
             data['Tags.member.1.PropagateAtLaunch'] = 'true'
-
-        if balancer:
-            data['LoadBalancerNames.member.1'] = balancer.name
 
         if termination_policies:
             for p in range(len(termination_policies)):
                 data['TerminationPolicies.member.%d' % (p + 1,)] =\
                     self._termination_policy_to_value(termination_policies[p])
 
-        configuration = template
-        configuration.update({'Action': 'CreateLaunchConfiguration'})
-        self.connection.request(self.path, params=configuration).object
+        template.update({'Action': 'CreateLaunchConfiguration'})
+        self.connection.request(self.path, params=template).object
         # If we are here then status=200 which is OK
         try:
             data.update({'Action': 'CreateAutoScalingGroup'})
@@ -504,7 +495,7 @@ class AutoScaleDriver(NodeDriver):
 
         data = {}
         data['Action'] = 'DescribeAutoScalingGroups'
-        data['AutoScalingGroupNames.member.1'] = name
+        data['AutoScalingGroupNames.member.1'] = group_name
 
         res = self.connection.request(self.path, params=data).object
         groups = self._to_autoscale_groups(res,
@@ -600,7 +591,7 @@ class AutoScaleDriver(NodeDriver):
                 try:
                     self._get_auto_scale_group(group_name)
                     time.sleep(POLL_INTERVAL)
-                except ResourceNotFoundError:
+                except AWSObjectDoesntExist:
                     # did not find group
                     completed = True
             if not completed:
@@ -639,8 +630,8 @@ class AutoScaleDriver(NodeDriver):
 
             return groups[0]
         except IndexError:
-            raise ResourceNotFoundError(value='Group: %s not found' %
-                                        group_name, driver=self)
+            raise AWSObjectDoesntExist(value='Group: %s not found' %
+                                       group_name, driver=self)
 
     def _to_autoscale_groups(self, res, xpath):
         return [self._to_autoscale_group(el)
@@ -660,10 +651,11 @@ class AutoScaleDriver(NodeDriver):
         max_size = findtext(element=element, xpath='MaxSize',
                             namespace=AUTOSCALE_NAMESPACE)
         termination_policies = self._get_termination_policies(element)
+        availability_zones = self._get_availability_zones(element)
 
         extra = {}
         extra['region'] = self.region_name
-        extra['balancer_names'] = self._get_balancer_names(element)
+        extra['availability_zones'] = availability_zones
         extra['launch_configuration_name'] =\
             findtext(element=element, xpath='LaunchConfigurationName',
                      namespace=AUTOSCALE_NAMESPACE)
@@ -697,22 +689,6 @@ class AutoScaleDriver(NodeDriver):
                                scaling_adjustment=int(scaling_adjustment),
                                driver=self.connection.driver)
 
-    def _get_balancer_names(self, element):
-        """
-        Parse load balancer names from the provided element and return a
-        list of therse.
-        :rtype: ``list`` of ``str``
-        """
-        balancer_names = []
-        for item in findall(element=element, xpath='LoadBalancerNames',
-                            namespace=AUTOSCALE_NAMESPACE):
-            b_n = findtext(element=item, xpath='member',
-                           namespace=AUTOSCALE_NAMESPACE)
-            if b_n is not None:
-                balancer_names.append(b_n)
-
-        return balancer_names
-
     def _get_termination_policies(self, element):
         """
         Parse termination policies from the provided element and return a
@@ -732,78 +708,52 @@ class AutoScaleDriver(NodeDriver):
 
         return termination_policies
 
-    def _value_to_scale_adjustment(self, value):
-        try:
-            return self._VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP[value]
-        except KeyError:
-            raise LibcloudError(value='Invalid value: %s' % (value),
-                                driver=self)
+    def _get_availability_zones(self, element):
+        """
+        Parse availability zones from the provided element and return a
+        list of these.
 
-    def _scale_adjustment_to_value(self, scale_adjustment):
-        try:
-            return self._SCALE_ADJUSTMENT_TYPE_TO_VALUE_MAP[scale_adjustment]
-        except KeyError:
-            raise LibcloudError(value='Invalid scale adjustment: %s'
-                                % (scale_adjustment), driver=self)
+        :rtype: ``list`` of ``str``
+        """
+        availability_zones = []
+        for item in findall(element=element, xpath='AvailabilityZones',
+                            namespace=AUTOSCALE_NAMESPACE):
 
-    def _value_to_termination_policy(self, value):
-        try:
-            return self._VALUE_TO_TERMINATION_POLICY_MAP[value]
-        except KeyError:
-            raise LibcloudError(value='Invalid value: %s' % (value),
-                                driver=self)
+            az = findtext(element=item, xpath='member',
+                          namespace=AUTOSCALE_NAMESPACE)
+            if az is not None:
+                availability_zones.append(az)
 
-    def _termination_policy_to_value(self, termination_policy):
-        try:
-            return self._TERMINATION_POLICY_TO_VALUE_MAP[termination_policy]
-        except KeyError:
-            raise LibcloudError(value='Invalid termination policy: %s'
-                                % (termination_policy), driver=self)
+        return availability_zones
 
+    def _to_virtual_guest_template(self, **attrs):
+        """
+        Return launch configuration template based on supplied
+        attributes.
+        """
+        template = {}
 
-class AutoScaleUSWestDriver(AutoScaleDriver):
-    """
-    Driver class for AutoScale in the Western US Region
-    """
-    name = 'Amazon AutoScale (us-west-1)'
-    _region = 'us-west-1'
+        image = attrs['image']
+        size = attrs['size']
+        name = attrs['name']
 
+        template['ImageId'] = image.id
+        template['InstanceType'] = size.id
 
-class AutoScaleUSWestOregonDriver(AutoScaleDriver):
-    """
-    Driver class for AutoScale in the US West Oregon region.
-    """
-    name = 'Amazon AutoScale (us-west-2)'
-    _region = 'us-west-2'
+        if 'ex_launch_configuration_name' in attrs:
+            template['LaunchConfigurationName'] = \
+                attrs['ex_launch_configuration_name']
+        else:
+            template['LaunchConfigurationName'] = name
 
+        if 'ex_keyname' in attrs:
+            template['KeyName'] = attrs['ex_keyname']
 
-class AutoScaleEuropeDriver(AutoScaleDriver):
-    """
-    Driver class for AutoScale in the Europe Region
-    """
-    name = 'Amazon AutoScale (eu-central-1)'
-    _region = 'eu-west-1'
+        if 'ex_iamprofile' in attrs:
+            template['IamInstanceProfile'] = attrs['ex_iamprofile']
 
+        if 'ex_userdata' in attrs:
+            template['UserData'] = base64.b64encode(b(attrs['ex_userdata']))\
+                .decode('utf-8')
 
-class CloudWatchUSWestDriver(CloudWatchDriver):
-    """
-    Driver class for CloudWatch in the Western US Region
-    """
-    name = 'Amazon CloudWatch (us-west-1)'
-    _region = 'us-west-1'
-
-
-class CloudWatchUSWestOregonDriver(CloudWatchDriver):
-    """
-    Driver class for CloudWatch in the US West Oregon region.
-    """
-    name = 'Amazon CloudWatch (us-west-2)'
-    _region = 'us-west-2'
-
-
-class CloudWatchEuropeDriver(CloudWatchDriver):
-    """
-    Driver class for CloudWatch in the Europe Region
-    """
-    name = 'Amazon CloudWatch (eu-central-1)'
-    _region = 'eu-west-1'
+        return template

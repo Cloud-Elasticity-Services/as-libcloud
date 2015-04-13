@@ -1,8 +1,12 @@
 from pprint import pprint
 
-from libcloud.compute.types import Provider, AutoScaleAdjustmentType,\
+from libcloud.compute.types import Provider as compute_provider
+from libcloud.compute.providers import get_driver \
+    as compute_get_driver
+
+from libcloud.autoscale.types import Provider, AutoScaleAdjustmentType,\
     AutoScaleMetric, AutoScaleOperator, AutoScaleTerminationPolicy
-from libcloud.compute.providers import get_driver
+from libcloud.autoscale.providers import get_driver
 
 ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
@@ -10,13 +14,13 @@ SECRET_KEY = 'your secret key'
 IMAGE_ID = 'ami-5c120b19'
 SIZE_ID = 't2.small'
 
-cls = get_driver(Provider.EC2_US_WEST)
+cls = compute_get_driver(compute_provider.EC2)
 driver = cls(ACCESS_ID, SECRET_KEY)
 
-as_cls = get_driver(Provider.AWS_AUTOSCALE_US_WEST)
+as_cls = get_driver(Provider.AWS_AUTOSCALE)
 as_driver = as_cls(ACCESS_ID, SECRET_KEY)
 
-cw_cls = get_driver(Provider.AWS_CLOUDWATCH_US_WEST)
+cw_cls = get_driver(Provider.AWS_CLOUDWATCH)
 cw_driver = cw_cls(ACCESS_ID, SECRET_KEY)
 
 # Here we select image
@@ -26,11 +30,11 @@ image = [i for i in images if i.id == IMAGE_ID][0]
 sizes = driver.list_sizes()
 size = [s for s in sizes if s.id == SIZE_ID][0]
 
-location = driver.list_locations()[1]
+location = driver.list_locations()[0]
 group = as_driver.create_auto_scale_group(
-    name='libcloud-group', min_size=2, max_size=5, cooldown=300,
+    group_name='libcloud-group', min_size=2, max_size=5, cooldown=300,
     termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
-    image=image, size=size, location=location, ex_instance_name='test-node')
+    name='test-node', image=image, size=size, location=location)
 
 pprint(group)
 

@@ -17,14 +17,15 @@ from __future__ import with_statement
 
 from libcloud.utils.py3 import httplib
 
-from libcloud.compute.base import NodeImage, AutoScaleAlarm, AutoScalePolicy,\
-    AutoScaleGroup, NodeSize
-from libcloud.compute.types import AutoScaleAdjustmentType, AutoScaleOperator,\
-    AutoScaleMetric
+from libcloud.autoscale.base import AutoScaleAlarm, AutoScalePolicy, \
+    AutoScaleGroup
+from libcloud.compute.base import NodeImage, NodeSize
+from libcloud.autoscale.types import AutoScaleAdjustmentType, \
+    AutoScaleOperator, AutoScaleMetric
 
 from libcloud.compute.drivers.ec2 import EC2NodeDriver
-from libcloud.compute.drivers.aws_autoscaling import AutoScaleDriver
-from libcloud.compute.drivers.aws_autoscaling import CloudWatchDriver
+from libcloud.autoscale.drivers.aws import AWSAutoScaleDriver
+from libcloud.autoscale.drivers.aws import AWSCloudWatchDriver
 
 from libcloud.test import MockHttpTestCase, LibcloudTestCase
 from libcloud.test.file_fixtures import ComputeFileFixtures
@@ -51,8 +52,10 @@ class AutoScaleTests(LibcloudTestCase):
         EC2MockHttp.use_param = 'Action'
         EC2MockHttp.type = None
 
-        AutoScaleDriver.connectionCls.conn_classes = (None, AutoScaleMockHttp)
-        CloudWatchDriver.connectionCls.conn_classes = (None, AutoScaleMockHttp)
+        AWSAutoScaleDriver.connectionCls.conn_classes = (None,
+                                                         AutoScaleMockHttp)
+        AWSCloudWatchDriver.connectionCls.conn_classes = (None,
+                                                          AutoScaleMockHttp)
 
         AutoScaleMockHttp.test = self
         AutoScaleMockHttp.use_param = 'Action'
@@ -61,10 +64,10 @@ class AutoScaleTests(LibcloudTestCase):
         self.ec2_driver = EC2NodeDriver(*EC2_PARAMS,
                                         **{'region': self.region})
 
-        self.as_driver = AutoScaleDriver(*EC2_PARAMS,
+        self.as_driver = AWSAutoScaleDriver(*EC2_PARAMS,
                                          **{'region': self.region})
 
-        self.cw_driver = CloudWatchDriver(*EC2_PARAMS,
+        self.cw_driver = AWSCloudWatchDriver(*EC2_PARAMS,
                                           **{'region': self.region})
 
     def test_create_auto_scale_group(self):
@@ -73,27 +76,11 @@ class AutoScaleTests(LibcloudTestCase):
         location = self.ec2_driver.list_locations()[0]
         size = NodeSize('t2.micro', None, None, None, None, None, None)
         group = self.as_driver.\
-            create_auto_scale_group(name='libcloud-testing',
+            create_auto_scale_group(group_name='libcloud-testing',
                                     min_size=1, max_size=5, cooldown=300,
-                                    image=image, location=location, size=size,
+                                    name='inst-test', image=image,
+                                    location=location, size=size,
                                     termination_policies=[2])
-
-        self.assertEqual(group.name, 'libcloud-testing')
-        self.assertEqual(group.cooldown, 300)
-        self.assertEqual(group.min_size, 1)
-        self.assertEqual(group.max_size, 5)
-        self.assertEqual(group.termination_policies, [2])
-
-    def test_create_auto_scale_group_with_ex_instance_name(self):
-
-        image = NodeImage(id='ami-9a562df2', name='', driver=self.as_driver)
-        location = self.ec2_driver.list_locations()[0]
-        group = self.as_driver.\
-            create_auto_scale_group(name='libcloud-testing',
-                                    min_size=1, max_size=5, cooldown=300,
-                                    image=image, location=location,
-                                    termination_policies=[2],
-                                    ex_instance_name='test-node')
 
         self.assertEqual(group.name, 'libcloud-testing')
         self.assertEqual(group.cooldown, 300)
@@ -115,8 +102,8 @@ class AutoScaleTests(LibcloudTestCase):
 
     def test_create_auto_scale_policy(self):
 
-        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None, [0],
-                               self.as_driver)
+        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None,
+                               [0], self.as_driver)
 
         policy = self.as_driver.create_auto_scale_policy(
             group=group, name='libcloud-testing-policy',
@@ -130,8 +117,8 @@ class AutoScaleTests(LibcloudTestCase):
 
     def test_list_auto_scale_policies(self):
 
-        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None, [0],
-                               self.as_driver)
+        group = AutoScaleGroup('123', 'libcloud-testing', None, None, None,
+                               [0], self.as_driver)
         policies = self.as_driver.list_auto_scale_policies(group=group)
         self.assertEqual(len(policies), 1)
 

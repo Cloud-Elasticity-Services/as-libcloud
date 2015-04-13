@@ -1,7 +1,7 @@
 import time
 
+from libcloud.autoscale.types import AutoScaleTerminationPolicy
 from libcloud.compute.base import NodeLocation
-from libcloud.compute.types import AutoScaleTerminationPolicy
 
 from libcloud.loadbalancer.base import Algorithm
 
