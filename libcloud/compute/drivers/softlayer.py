@@ -23,14 +23,11 @@ try:
 except ImportError:
     crypto = False
 
-from libcloud.common.softlayer import SoftLayerConnection, SoftLayerException,\
-    SoftLayerObjectDoesntExist
+from libcloud.common.softlayer import SoftLayerConnection, SoftLayerException
 from libcloud.compute.types import Provider, NodeState
 from libcloud.compute.base import NodeDriver, Node, NodeLocation, NodeSize, \
     NodeImage, KeyPair
 from libcloud.compute.types import KeyPairDoesNotExistError
-
-from libcloud.utils.misc import find, reverse_dict
 
 DEFAULT_DOMAIN = 'example.com'
 DEFAULT_CPU_SIZE = 1

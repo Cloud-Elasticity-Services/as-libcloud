@@ -190,7 +190,7 @@ class SoftLayerTests(unittest.TestCase):
 
         group = self.as_driver.create_auto_scale_group(
             group_name="libcloud-testing", min_size=1, max_size=5,
-            cooldown=300, name='inst-test', size=self.driver.list_sizes()[0], 
+            cooldown=300, name='inst-test', size=self.driver.list_sizes()[0],
             image=self.driver.list_images()[0],
             termination_policies=[2])
 
