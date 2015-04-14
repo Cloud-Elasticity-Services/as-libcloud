@@ -47,6 +47,7 @@ __all__ = [
 
 DEFAULT_SIGNATURE_VERSION = '2'
 
+
 class AWSObjectDoesntExist(LibcloudError):
     """
     Exception class for AWS driver object doesnt exist

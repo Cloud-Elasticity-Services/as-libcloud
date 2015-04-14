@@ -24,9 +24,6 @@ __all__ = [
     "NodeState",
     "DeploymentError",
     "DeploymentException",
-    "AutoScaleAdjustmentType",
-    "AutoScaleOperator",
-    "AutoScaleMetric",
 
     # @@TR: should the unused imports below be exported?
     "LibcloudError",

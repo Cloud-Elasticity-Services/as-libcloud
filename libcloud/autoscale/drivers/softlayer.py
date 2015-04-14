@@ -167,9 +167,9 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         data['virtualGuestMemberTemplate'] = template
 
         if balancer:
-#            if not datacenter:
-#                raise ValueError('location must be supplied when supplying '
-#                                 'loadbalancer')
+            # if not datacenter:
+            # raise ValueError('location must be supplied when supplying '
+            # 'loadbalancer')
 
             ex_service_port = kwargs.get('ex_service_port', 80)
             data['loadBalancers'] = [

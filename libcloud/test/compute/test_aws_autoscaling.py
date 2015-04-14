@@ -37,11 +37,11 @@ from libcloud.test.secrets import EC2_PARAMS
 
 class AutoScaleTests(LibcloudTestCase):
     region = 'eu-west-1'
-    POLICY_ID = 'arn:aws:autoscaling:eu-west-1:786301965414:scalingPolicy:'\
-        'e1c4a42b-4777-4fbb-bac4-41e2060bf775:autoScalingGroupName/libcloud-'\
-        'testing:policyName/libcloud-testing-policy'
+    POLICY_ID = 'arn:aws:autoscaling:eu-west-1:786301965414:scalingPolicy:' +\
+        'e1c4a42b-4777-4fbb-bac4-41e2060bf775:autoScalingGroupName/libcloud' +\
+        '-testing:policyName/libcloud-testing-policy'
 
-    ALARM_ID = 'arn:aws:cloudwatch:eu-west-1:786301965414:alarm:libcloud-'\
+    ALARM_ID = 'arn:aws:cloudwatch:eu-west-1:786301965414:alarm:libcloud-' +\
         'testing-alarm'
 
     def setUp(self):
@@ -65,10 +65,10 @@ class AutoScaleTests(LibcloudTestCase):
                                         **{'region': self.region})
 
         self.as_driver = AWSAutoScaleDriver(*EC2_PARAMS,
-                                         **{'region': self.region})
+                                            **{'region': self.region})
 
         self.cw_driver = AWSCloudWatchDriver(*EC2_PARAMS,
-                                          **{'region': self.region})
+                                             **{'region': self.region})
 
     def test_create_auto_scale_group(self):
 

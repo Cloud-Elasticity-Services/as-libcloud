@@ -36,12 +36,13 @@ policy = as_driver.create_auto_scale_policy(
 
 pprint(policy)
 
-alarm = as_driver.create_auto_scale_alarm(name='libcloud-alarm',
-                                       policy=policy,
-                                       metric_name=AutoScaleMetric.CPU_UTIL,
-                                       operator=AutoScaleOperator.GT,
-                                       threshold=80,
-                                       period=120)
+alarm = as_driver.create_auto_scale_alarm(
+    name='libcloud-alarm',
+    policy=policy,
+    metric_name=AutoScaleMetric.CPU_UTIL,
+    operator=AutoScaleOperator.GT,
+    threshold=80, period=120)
+
 pprint(alarm)
 
 import time
