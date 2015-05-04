@@ -43,7 +43,7 @@ if balancer.port < 0:
         balancer, port=80, protocol='http',
         algorithm=Algorithm.SHORTEST_RESPONSE)
 
-# create scale group with balancer and backend port is 8080
+# create scale group with balancer and backend port of 8080
 # Note: scale group members must be in same datacenter balancer is
 group = as_driver.create_auto_scale_group(
     group_name='libcloud-group', min_size=1, max_size=5, cooldown=300,
