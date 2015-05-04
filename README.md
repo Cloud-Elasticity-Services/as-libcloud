@@ -41,46 +41,54 @@ Scaling capabilities.
 
     $ python
 
-    >>> from libcloud.compute.types import Provider, AutoScaleMetric, AutoScaleTerminationPolicy, AutoScaleAdjustmentType, AutoScaleOperator
+    >>> from libcloud.autoscale.types import AutoScaleTerminationPolicy, AutoScaleMetric, AutoScaleAdjustmentType, AutoScaleOperator
+    >>> from libcloud.autoscale.types import Provider as autoscale_Provider
+    >>> from libcloud.autoscale.providers import get_driver as autoscale_get_driver
+
+    >>> from libcloud.compute.types import Provider
     >>> from libcloud.compute.providers import get_driver
-    >>> cls = get_driver(Provider.SOFTLAYER)
 
     # Use account username and api key
     >>> username = "Your SOFTLAYER user name"
     >>> api_key = "Your SOFTLAYER api key"
-    >>> driver = cls(username, api_key)
+
+    >>> driver = get_driver(Provider.SOFTLAYER)(username, api_key)
+    >>> as_driver = autoscale_get_driver(autoscale_Provider.SOFTLAYER)(username, api_key)
 
     # Create an auto scale group 
     # (note: create is a long syncronious operation, be patient)
-    >>> group = driver.create_auto_scale_group(name="test", min_size=1,
+    >>> group = as_driver.create_auto_scale_group(group_name='test', min_size=1,
             max_size=5, cooldown=300, image=driver.list_images()[0],
-            termination_policies=[AutoScaleTerminationPolicy.OLDEST_INSTANCE])
+            termination_policies=[AutoScaleTerminationPolicy.OLDEST_INSTANCE],
+            location=driver.list_locations()[0], name='inst-test', ex_region='na-usa-east-1')
 
     # List auto scale groups
-    >>> driver.list_auto_scale_groups()
+    >>> as_driver.list_auto_scale_groups()
 
     # Create policy that when triggered, increments group membership 
     # by one
-    >>> policy=driver.create_auto_scale_policy(group, name='test-policy',
+    >>> policy=as_driver.create_auto_scale_policy(group, name='policy-scale-up',
             adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
             scaling_adjustment=1)
 
     # Add an alarm to policy.
     # Alarm triggers the policy when cpu utilization 
     # of group members is beyond 80%
-    >>> alarm = driver.create_auto_scale_alarm(name='my_alarm',
+    >>> alarm = as_driver.create_auto_scale_alarm(name='cpu-high',
             policy=policy, metric_name=AutoScaleMetric.CPU_UTIL,
             operator=AutoScaleOperator.GT, threshold=80, period=120)
 
     # List alarms for this policy
-    >>> driver.list_auto_scale_alarms(policy)
+    >>> as_driver.list_auto_scale_alarms(policy)
 
     # List policies for this group
-    >>> driver.list_auto_scale_policies(group)
+    >>> as_driver.list_auto_scale_policies(group)
 
     # Delete alarm
-    >>> driver.delete_auto_scale_alarm(alarm)
+    >>> as_driver.delete_auto_scale_alarm(alarm)
     
+Additional autoscale/loadbalancer examples available at [autoscale][autoscale] and [loadbalancer][loadbalancer] directories.
+
 ### Native APIs
 
 Following is a list of native API services that the extension uses
@@ -136,4 +144,6 @@ Delete alarm
 - Amazon: DeleteAlarms
 - Softlayer: SoftLayer_Scale_Policy_Trigger_ResourceUse::deleteObject
 
+[autoscale]: https://github.com/Cloud-Elasticity-Services/as-libcloud/tree/trunk/docs/examples/autoscale
 [libcloud]: https://libcloud.readthedocs.org/
+[loadbalancer]: https://github.com/Cloud-Elasticity-Services/as-libcloud/tree/trunk/docs/examples/loadbalancer/softlayer
