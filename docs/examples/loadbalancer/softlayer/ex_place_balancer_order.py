@@ -11,8 +11,8 @@ driver = cls(key=USER_NAME, secret=SECRET_KEY)
 
 # order loadbalancer with a capacity of 50 connections
 CAPACITY = 50
-# create the balancer in Dallas 5 datacenter
-DATACENTER = 'dal05'
+# create the balancer in Paris datacenter
+DATACENTER = 'par01'
 
 # select package to create balancer from
 packages = driver.ex_list_balancer_packages()

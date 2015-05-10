@@ -39,11 +39,6 @@ def find(l, predicate):
     return results[0] if len(results) > 0 else None
 
 
-def find(l, predicate):
-    results = [x for x in l if predicate(x)]
-    return results[0] if len(results) > 0 else None
-
-
 def get_driver(drivers, provider):
     """
     Get a driver.

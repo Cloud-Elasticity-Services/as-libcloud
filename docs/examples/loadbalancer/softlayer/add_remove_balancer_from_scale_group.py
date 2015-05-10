@@ -17,8 +17,8 @@ from libcloud.compute.providers import get_driver
 USER_NAME = 'your user name'
 SECRET_KEY = 'your secret key'
 
-DATACENTER = 'dal05'
-REGION = 'na-usa-central-1'
+DATACENTER = 'par01'
+REGION = 'eu-fra-north-1'
 
 CAPACITY = 50
 

@@ -1,3 +1,5 @@
+import time
+
 from libcloud.compute.base import NodeImage
 from libcloud.compute.types import Provider as compute_provider
 from libcloud.compute.providers import get_driver \
@@ -42,6 +44,7 @@ balancer = lb_driver.create_balancer(
     members=[])
 
 print(balancer)
+time.sleep(60)
 
 # create scale group with balancer (group and balancer are
 # in same availability zone)
@@ -53,7 +56,6 @@ group = as_driver.create_auto_scale_group(
 
 print(group)
 
-import time
 time.sleep(120)
 
 nodes = as_driver.list_auto_scale_group_members(group=group)

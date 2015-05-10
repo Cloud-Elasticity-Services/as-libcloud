@@ -66,44 +66,6 @@ class LBPackage(object):
                               self.price_id, self.capacity))
 
 
-class LBPackage(object):
-
-    """
-    Defines a single Softlayer package to be used when placing orders (
-    e.g. via ex_place_balancer_order method).
-
-    :param id: Package id.
-    :type id: ``int``
-
-    :param name: Package name.
-    :type name: ``str``
-
-    :param description: Package short description.
-    :type description: ``str``
-
-    :param price_id: Id of the price for this package.
-    :type price_id: ``int``
-
-    :param capacity: Provides a numerical representation of the capacity given
-                     in the description of this package.
-    :type capacity: ``int``
-
-    """
-
-    def __init__(self, id, name, description, price_id, capacity):
-        self.id = id
-        self.name = name
-        self.description = description
-        self.price_id = price_id
-        self.capacity = capacity
-
-    def __repr__(self):
-        return (
-            '<LBPackage: id=%s, name=%s, description=%s, price_id=%s, '
-            'capacity=%s>' % (self.id, self.name, self.description,
-                              self.price_id, self.capacity))
-
-
 class SoftlayerLBDriver(Driver):
     name = 'Softlayer Load Balancing'
     website = 'http://www.softlayer.com/'
@@ -420,29 +382,6 @@ class SoftlayerLBDriver(Driver):
         }
 
         return template
-
-    def _get_location(self, location_id):
-
-        res = self.connection.request('SoftLayer_Location_Datacenter',
-                                      'getDatacenters').object
-
-        dcenter = find(res, lambda d: d['name'] == location_id)
-        if not dcenter:
-            raise LibcloudError(value='Invalid value %s' % location_id,
-                                driver=self)
-        return dcenter['id']
-
-    def _to_lb_package(self, pkg):
-
-        try:
-            price_id = pkg['prices'][0]['id']
-        except:
-            price_id = -1
-
-        capacity = int(pkg.get('capacity', 0))
-        return LBPackage(id=pkg['id'], name=pkg['keyName'],
-                         description=pkg['description'],
-                         price_id=price_id, capacity=capacity)
 
     def _to_balancer(self, lb):
         ipaddress = lb['ipAddress']['ipAddress']

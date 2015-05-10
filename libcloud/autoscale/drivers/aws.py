@@ -419,7 +419,7 @@ class AWSAutoScaleDriver(AutoScaleDriver):
 
     def create_auto_scale_group(
             self, group_name, min_size, max_size, cooldown,
-            termination_policies, **kwargs):
+            termination_policies, balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
@@ -476,6 +476,8 @@ class AWSAutoScaleDriver(AutoScaleDriver):
             for p in range(len(termination_policies)):
                 data['TerminationPolicies.member.%d' % (p + 1,)] =\
                     self._termination_policy_to_value(termination_policies[p])
+        if balancer:
+            data['LoadBalancerNames.member.1'] = balancer.name
 
         template.update({'Action': 'CreateLaunchConfiguration'})
         self.connection.request(self.path, params=template).object
@@ -655,6 +657,7 @@ class AWSAutoScaleDriver(AutoScaleDriver):
 
         extra = {}
         extra['region'] = self.region_name
+        extra['balancer_names'] = self._get_balancer_names(element)
         extra['availability_zones'] = availability_zones
         extra['launch_configuration_name'] =\
             findtext(element=element, xpath='LaunchConfigurationName',
@@ -707,6 +710,23 @@ class AWSAutoScaleDriver(AutoScaleDriver):
                     self._value_to_termination_policy(t_p))
 
         return termination_policies
+
+    def _get_balancer_names(self, element):
+        """
+        Parse load balancer names from the provided element and return a
+        list of therse.
+
+        :rtype: ``list`` of ``str``
+        """
+        balancer_names = []
+        for item in findall(element=element, xpath='LoadBalancerNames',
+                            namespace=AUTOSCALE_NAMESPACE):
+            b_n = findtext(element=item, xpath='member',
+                           namespace=AUTOSCALE_NAMESPACE)
+            if b_n is not None:
+                balancer_names.append(b_n)
+
+        return balancer_names
 
     def _get_availability_zones(self, element):
         """
