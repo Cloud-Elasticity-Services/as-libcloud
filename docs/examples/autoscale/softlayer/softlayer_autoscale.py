@@ -1,20 +1,27 @@
 from pprint import pprint
 
-from libcloud.compute.types import Provider as compute_provider
+from libcloud.autoscale.providers import get_driver as as_get_driver
+from libcloud.autoscale.types import Provider as as_provider
+from libcloud.autoscale.types import AutoScaleTerminationPolicy, \
+    AutoScaleAdjustmentType
+
 from libcloud.compute.providers import get_driver \
     as compute_get_driver
+from libcloud.compute.types import Provider as compute_provider
 
-from libcloud.autoscale.types import Provider, AutoScaleAdjustmentType,\
-    AutoScaleMetric, AutoScaleOperator, AutoScaleTerminationPolicy
-from libcloud.autoscale.providers import get_driver
+from libcloud.monitor.providers import get_driver as monitor_get_driver
+from libcloud.monitor.types import Provider as monitor_provider
+from libcloud.monitor.types import AutoScaleMetric, AutoScaleOperator
 
 USER_NAME = 'your user name'
 SECRET_KEY = 'your secret key'
 
+# Initialize the drivers
 driver = compute_get_driver(compute_provider.SOFTLAYER)(
     USER_NAME, SECRET_KEY)
-
-as_driver = get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
+as_driver = as_get_driver(as_provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
+mon_driver = monitor_get_driver(monitor_provider.SOFTLAYER)(
+    USER_NAME, SECRET_KEY)
 
 image = driver.list_images()[0]
 size = driver.list_sizes()[0]
@@ -44,8 +51,8 @@ pprint(policy_scale_up)
 
 # add an alarm to policy which triggers the policy when cpu utilization
 # of group members is greater than 80%
-alarm_high_cpu = as_driver.create_auto_scale_alarm(
-    name='cpu-high', policy=policy_scale_up,
+alarm_high_cpu = mon_driver.create_auto_scale_alarm(
+    name='cpu-high', action_ids=[policy_scale_up.id],
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.GT, threshold=80,
     period=120)
@@ -63,13 +70,16 @@ pprint(policy_scale_down)
 
 # add an alarm to policy which triggers the policy when cpu utilization
 # of group members is less than 30%
-alarm_low_cpu = as_driver.create_auto_scale_alarm(
-    name='cpu-low', policy=policy_scale_down,
+alarm_low_cpu = mon_driver.create_auto_scale_alarm(
+    name='cpu-low', action_ids=[policy_scale_down.id],
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.LT, threshold=30,
     period=120)
 
 pprint(alarm_low_cpu)
+
+alarms = mon_driver.list_auto_scale_alarms(action_ids=[policy_scale_up.id])
+pprint(alarms)
 
 import time
 time.sleep(60)

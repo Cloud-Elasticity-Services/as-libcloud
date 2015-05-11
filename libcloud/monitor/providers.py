@@ -14,7 +14,7 @@
 # limitations under the License.
 from libcloud.utils.misc import get_driver as get_provider_driver
 from libcloud.utils.misc import set_driver as set_provider_driver
-from libcloud.autoscale.types import Provider
+from libcloud.monitor.types import Provider
 
 __all__ = [
     "Provider",
@@ -23,10 +23,10 @@ __all__ = [
 ]
 
 DRIVERS = {
-    Provider.AWS_AUTOSCALE:
-    ('libcloud.autoscale.drivers.aws', 'AWSAutoScaleDriver'),
+    Provider.AWS_CLOUDWATCH:
+    ('libcloud.monitor.drivers.aws', 'AWSCloudWatchDriver'),
     Provider.SOFTLAYER:
-    ('libcloud.autoscale.drivers.softlayer', 'SoftLayerAutoScaleDriver'),
+    ('libcloud.monitor.drivers.softlayer', 'SoftLayerMonitorDriver'),
 }
 
 

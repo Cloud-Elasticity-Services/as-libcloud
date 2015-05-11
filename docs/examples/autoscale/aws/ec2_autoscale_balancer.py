@@ -1,17 +1,17 @@
 import time
 
-from libcloud.compute.base import NodeImage
-from libcloud.compute.types import Provider as compute_provider
-from libcloud.compute.providers import get_driver \
-    as compute_get_driver
-
+from libcloud.autoscale.providers import get_driver as as_get_driver
 from libcloud.autoscale.types import Provider as as_provider
 from libcloud.autoscale.types import AutoScaleTerminationPolicy
-from libcloud.autoscale.providers import get_driver as as_get_driver
+
+from libcloud.compute.base import NodeImage
+from libcloud.compute.providers import get_driver \
+    as compute_get_driver
+from libcloud.compute.types import Provider as compute_provider
 
 from libcloud.loadbalancer.base import Algorithm
-from libcloud.loadbalancer.types import Provider as lb_provider
 from libcloud.loadbalancer.providers import get_driver as lb_get_driver
+from libcloud.loadbalancer.types import Provider as lb_provider
 
 ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
@@ -21,12 +21,11 @@ SIZE_ID = 't2.small'
 
 REGION = 'us-west-1'
 
+# Initialize the drivers
 ec2_driver = compute_get_driver(
     compute_provider.EC2)(ACCESS_ID, SECRET_KEY, region=REGION)
-
 as_driver = as_get_driver(
     as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY, region=REGION)
-
 lb_driver = lb_get_driver(lb_provider.ELB)(ACCESS_ID, SECRET_KEY, REGION)
 
 # image for the auto scale members
