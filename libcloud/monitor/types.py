@@ -12,27 +12,45 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from libcloud.utils.misc import get_driver as get_provider_driver
-from libcloud.utils.misc import set_driver as set_provider_driver
-from libcloud.autoscale.types import Provider
 
 __all__ = [
     "Provider",
-    "DRIVERS",
-    "get_driver",
+    "AutoScaleOperator",
+    "AutoScaleMetric"
 ]
 
-DRIVERS = {
-    Provider.AWS_AUTOSCALE:
-    ('libcloud.autoscale.drivers.aws', 'AWSAutoScaleDriver'),
-    Provider.SOFTLAYER:
-    ('libcloud.autoscale.drivers.softlayer', 'SoftLayerAutoScaleDriver'),
-}
+
+class Provider(object):
+    """
+    Defines for each of the supported providers
+
+    :cvar: AWS_CLOUDWATCH: Amazon CloudWatch
+    :cvar SOFTLAYER: Softlayer
+    """
+    AWS_CLOUDWATCH = 'aws_cloudwatch'
+    SOFTLAYER = 'softlayer'
 
 
-def get_driver(provider):
-    return get_provider_driver(DRIVERS, provider)
+class AutoScaleOperator(object):
+    """
+    The arithmetic operation to use when comparing the statistic
+    and threshold.
+
+    :cvar LT: Less than.
+    :cvar LE: Less equals.
+    :cvar GT: Greater than.
+    :cvar GE: Great equals.
+
+    """
+
+    LT = 'LT'
+    LE = 'LE'
+    GT = 'GT'
+    GE = 'GE'
 
 
-def set_driver(provider, module, klass):
-    return set_provider_driver(DRIVERS, provider, module, klass)
+class AutoScaleMetric(object):
+    """
+    :cvar CPU_UTIL: The percent CPU a guest is using.
+    """
+    CPU_UTIL = 'CPU_UTIL'

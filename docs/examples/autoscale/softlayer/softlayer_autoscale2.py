@@ -1,21 +1,29 @@
 from pprint import pprint
 
-from libcloud.compute.types import Provider as compute_provider
+from libcloud.autoscale.providers import get_driver as as_get_driver
+from libcloud.autoscale.types import Provider as as_provider
+from libcloud.autoscale.types import AutoScaleTerminationPolicy, \
+    AutoScaleAdjustmentType
+
 from libcloud.compute.providers import get_driver \
     as compute_get_driver
+from libcloud.compute.types import Provider as compute_provider
 
-from libcloud.autoscale.types import Provider, AutoScaleAdjustmentType,\
-    AutoScaleMetric, AutoScaleOperator, AutoScaleTerminationPolicy
-from libcloud.autoscale.providers import get_driver
+from libcloud.monitor.providers import get_driver as monitor_get_driver
+from libcloud.monitor.types import Provider as monitor_provider
+from libcloud.monitor.types import AutoScaleMetric, AutoScaleOperator
 
 USER_NAME = 'your user name'
 SECRET_KEY = 'your secret key'
 
+# Initialize the drivers
 driver = compute_get_driver(compute_provider.SOFTLAYER)(
     USER_NAME, SECRET_KEY)
 
-as_driver = get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY,
-                                           region='na-usa-central-1')
+as_driver = as_get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY,
+                                              region='na-usa-central-1')
+mon_driver = monitor_get_driver(monitor_provider.SOFTLAYER)(
+    USER_NAME, SECRET_KEY)
 
 image = driver.list_images()[0]
 size = driver.list_sizes()[0]
@@ -36,9 +44,9 @@ policy = as_driver.create_auto_scale_policy(
 
 pprint(policy)
 
-alarm = as_driver.create_auto_scale_alarm(
+alarm = mon_driver.create_auto_scale_alarm(
     name='libcloud-alarm',
-    policy=policy,
+    action_ids=[policy.id],
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.GT,
     threshold=80, period=120)

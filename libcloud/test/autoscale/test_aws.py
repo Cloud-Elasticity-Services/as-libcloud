@@ -17,19 +17,20 @@ from __future__ import with_statement
 
 from libcloud.utils.py3 import httplib
 
-from libcloud.autoscale.base import AutoScaleAlarm, AutoScalePolicy, \
-    AutoScaleGroup
 from libcloud.compute.base import NodeImage, NodeSize
-from libcloud.autoscale.types import AutoScaleAdjustmentType, \
-    AutoScaleOperator, AutoScaleMetric
-
 from libcloud.compute.drivers.ec2 import EC2NodeDriver
+
+from libcloud.autoscale.base import AutoScalePolicy, \
+    AutoScaleGroup
 from libcloud.autoscale.drivers.aws import AWSAutoScaleDriver
-from libcloud.autoscale.drivers.aws import AWSCloudWatchDriver
+from libcloud.autoscale.types import AutoScaleAdjustmentType
+
+from libcloud.monitor.base import AutoScaleAlarm
+from libcloud.monitor.drivers.aws import AWSCloudWatchDriver
+from libcloud.monitor.types import AutoScaleMetric, AutoScaleOperator
 
 from libcloud.test import MockHttpTestCase, LibcloudTestCase
 from libcloud.test.file_fixtures import ComputeFileFixtures
-
 from libcloud.test.compute.test_ec2 import EC2MockHttp
 
 from libcloud.test.secrets import EC2_PARAMS

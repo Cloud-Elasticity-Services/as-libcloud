@@ -15,9 +15,7 @@
 
 __all__ = [
     "Provider",
-    "AutoScaleAdjustmentType",
-    "AutoScaleOperator",
-    "AutoScaleMetric"
+    "AutoScaleAdjustmentType"
 ]
 
 
@@ -26,11 +24,9 @@ class Provider(object):
     Defines for each of the supported providers
 
     :cvar AWS_AUTOSCALE: Amazon AutoScale
-    :cvar: AWS_CLOUDWATCH: Amazon CloudWatch
     :cvar SOFTLAYER: Softlayer
     """
     AWS_AUTOSCALE = 'aws_autoscale'
-    AWS_CLOUDWATCH = 'aws_cloudwatch'
     SOFTLAYER = 'softlayer'
 
 
@@ -65,28 +61,3 @@ class AutoScaleTerminationPolicy(object):
     NEWEST_INSTANCE = 1
     CLOSEST_TO_NEXT_CHARGE = 2
     DEFAULT = 3
-
-
-class AutoScaleOperator(object):
-    """
-    The arithmetic operation to use when comparing the statistic
-    and threshold.
-
-    :cvar LT: Less than.
-    :cvar LE: Less equals.
-    :cvar GT: Greater than.
-    :cvar GE: Great equals.
-
-    """
-
-    LT = 'LT'
-    LE = 'LE'
-    GT = 'GT'
-    GE = 'GE'
-
-
-class AutoScaleMetric(object):
-    """
-    :cvar CPU_UTIL: The percent CPU a guest is using.
-    """
-    CPU_UTIL = 'CPU_UTIL'

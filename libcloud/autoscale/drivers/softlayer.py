@@ -19,9 +19,9 @@ from libcloud.common.softlayer import SoftLayerException, \
     SoftLayerObjectDoesntExist, SoftLayerConnection
 
 from libcloud.autoscale.base import AutoScaleDriver, AutoScalePolicy, \
-    AutoScaleGroup, AutoScaleAlarm
-from libcloud.autoscale.types import AutoScaleOperator, \
-    AutoScaleTerminationPolicy, AutoScaleAdjustmentType, AutoScaleMetric
+    AutoScaleGroup
+from libcloud.autoscale.types import AutoScaleTerminationPolicy, \
+    AutoScaleAdjustmentType
 from libcloud.autoscale.types import Provider
 from libcloud.utils.misc import find, reverse_dict
 from libcloud.compute.drivers.softlayer import SoftLayerNodeDriver
@@ -36,14 +36,6 @@ SL_REGIONS = [
 
 
 class SoftLayerAutoScaleDriver(AutoScaleDriver):
-
-    _VALUE_TO_SCALE_OPERATOR_TYPE_MAP = {
-        '>': AutoScaleOperator.GT,
-        '<': AutoScaleOperator.LT
-    }
-
-    _SCALE_OPERATOR_TYPE_TO_VALUE_MAP = reverse_dict(
-        _VALUE_TO_SCALE_OPERATOR_TYPE_MAP)
 
     _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
         'RELATIVE': AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
@@ -63,13 +55,6 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
 
     _TERMINATION_POLICY_TO_VALUE_MAP = reverse_dict(
         _VALUE_TO_TERMINATION_POLICY_MAP)
-
-    _VALUE_TO_METRIC_MAP = {
-        'host.cpu.percent': AutoScaleMetric.CPU_UTIL
-    }
-
-    _METRIC_TO_VALUE_MAP = reverse_dict(
-        _VALUE_TO_METRIC_MAP)
 
     connectionCls = SoftLayerConnection
     name = 'SoftLayer'
@@ -287,89 +272,6 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
                                 'deleteObject', id=policy.id).object
         return True
 
-    def create_auto_scale_alarm(self, name, policy, metric_name, operator,
-                                threshold, period, **kwargs):
-        """
-        Create an auto scale alarm for the given policy.
-
-        @inherits: :class:`NodeDriver.create_auto_scale_alarm`
-
-        :param name: Descriptive name of the alarm.
-        :type name: ``str``
-
-        :param policy: Policy object.
-        :type policy: :class:`.AutoScalePolicy`
-
-        :param metric_name: The metric to watch.
-        :type metric_name: value within :class:`AutoScaleMetric`
-
-        :param operator: The operator to use for comparison.
-        :type operator: value within :class:`AutoScaleOperator`
-
-        :param threshold: The value against which the specified statistic is
-                          compared.
-        :type threshold: ``int``
-
-        :param name: The descriptive name for the alarm.
-        :type name: ``str``
-
-        :param period: The number of seconds the values are aggregated for when
-                       compared to threshold.
-        :type period: ``int``
-
-        :return: The newly created alarm.
-        :rtype: :class:`.AutoScaleAlarm`
-        """
-
-        data = {}
-        # 'RESOURCE_USE'
-        data['typeId'] = 3
-        data['scalePolicyId'] = policy.id
-
-        trigger_watch = {}
-        trigger_watch['algorithm'] = 'EWMA'
-        trigger_watch['metric'] = self._metric_to_value(metric_name)
-
-        trigger_watch['operator'] = \
-            self._operator_type_to_value(operator)
-
-        trigger_watch['value'] = threshold
-        trigger_watch['period'] = period
-
-        data['watches'] = [trigger_watch]
-
-        res = self.connection.\
-            request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                    'createObject', data).object
-
-        mask = {
-            'watches': ''
-        }
-
-        res = self.connection.\
-            request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                    'getObject', id=res['id'], object_mask=mask).object
-        alarm = self._to_autoscale_alarm(res)
-
-        return alarm
-
-    def list_auto_scale_alarms(self, policy):
-        mask = {
-            'resourceUseTriggers': {
-                'watches': ''
-            }
-        }
-
-        res = self.connection.request('SoftLayer_Scale_Policy',
-                                      'getResourceUseTriggers',
-                                      object_mask=mask, id=policy.id).object
-        return [self._to_autoscale_alarm(r) for r in res]
-
-    def delete_auto_scale_alarm(self, alarm):
-        self.connection.request('SoftLayer_Scale_Policy_Trigger_ResourceUse',
-                                'deleteObject', id=alarm.id).object
-        return True
-
     def delete_auto_scale_group(self, group):
         DEFAULT_TIMEOUT = 12000
 
@@ -567,28 +469,6 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
                               termination_policies=termination_policies,
                               driver=self.connection.driver,
                               extra=extra)
-
-    def _to_autoscale_alarm(self, alrm):
-
-        alrm_id = alrm['id']
-
-        metric = None
-        operator = None
-        period = None
-        threshold = None
-
-        if alrm.get('watches', []):
-
-            metric = self._value_to_metric(alrm['watches'][0]['metric'])
-            op = alrm['watches'][0]['operator']
-            operator = self._value_to_operator_type(op)
-            period = alrm['watches'][0]['period']
-            threshold = alrm['watches'][0]['value']
-
-        return AutoScaleAlarm(id=alrm_id, name='N/A', metric_name=metric,
-                              operator=operator, period=period,
-                              threshold=int(threshold),
-                              driver=self.connection.driver)
 
     def _generate_balancer_template(self, balancer, ex_service_port):
 
