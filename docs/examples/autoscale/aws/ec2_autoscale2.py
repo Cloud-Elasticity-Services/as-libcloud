@@ -48,7 +48,7 @@ pprint(policy)
 
 alarm = mon_driver.create_auto_scale_alarm(
     name='libcloud-alarm',
-    action_ids=[policy.id], metric_name=AutoScaleMetric.CPU_UTIL,
+    policy=policy, metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.GT, threshold=80,
     period=120)
 

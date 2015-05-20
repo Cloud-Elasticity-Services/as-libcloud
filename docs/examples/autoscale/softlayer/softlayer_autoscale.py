@@ -52,7 +52,7 @@ pprint(policy_scale_up)
 # add an alarm to policy which triggers the policy when cpu utilization
 # of group members is greater than 80%
 alarm_high_cpu = mon_driver.create_auto_scale_alarm(
-    name='cpu-high', action_ids=[policy_scale_up.id],
+    name='cpu-high', policy=policy_scale_up,
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.GT, threshold=80,
     period=120)
@@ -71,14 +71,14 @@ pprint(policy_scale_down)
 # add an alarm to policy which triggers the policy when cpu utilization
 # of group members is less than 30%
 alarm_low_cpu = mon_driver.create_auto_scale_alarm(
-    name='cpu-low', action_ids=[policy_scale_down.id],
+    name='cpu-low', policy=policy_scale_down,
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.LT, threshold=30,
     period=120)
 
 pprint(alarm_low_cpu)
 
-alarms = mon_driver.list_auto_scale_alarms(action_ids=[policy_scale_up.id])
+alarms = mon_driver.list_auto_scale_alarms(policy_scale_up)
 pprint(alarms)
 
 import time

@@ -46,12 +46,12 @@ class SoftLayerMonitorDriver(MonitorDriver):
     def __init__(self, *args, **kwargs):
         super(SoftLayerMonitorDriver, self).__init__(*args, **kwargs)
 
-    def create_auto_scale_alarm(self, name, action_ids, metric_name, operator,
+    def create_auto_scale_alarm(self, name, policy, metric_name, operator,
                                 threshold, period, **kwargs):
         data = {}
         # 'RESOURCE_USE'
         data['typeId'] = 3
-        data['scalePolicyId'] = action_ids[0]
+        data['scalePolicyId'] = policy.id
 
         trigger_watch = {}
         trigger_watch['algorithm'] = 'EWMA'
@@ -80,7 +80,7 @@ class SoftLayerMonitorDriver(MonitorDriver):
 
         return alarm
 
-    def list_auto_scale_alarms(self, action_ids):
+    def list_auto_scale_alarms(self, policy):
         mask = {
             'resourceUseTriggers': {
                 'watches': ''
@@ -90,7 +90,7 @@ class SoftLayerMonitorDriver(MonitorDriver):
         res = self.connection.request('SoftLayer_Scale_Policy',
                                       'getResourceUseTriggers',
                                       object_mask=mask,
-                                      id=action_ids[0]).object
+                                      id=policy.id).object
         return [self._to_autoscale_alarm(r) for r in res]
 
     def delete_auto_scale_alarm(self, alarm):

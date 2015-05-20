@@ -1,3 +1,5 @@
+import time
+
 from pprint import pprint
 
 from libcloud.autoscale.providers import get_driver as as_get_driver
@@ -5,55 +7,64 @@ from libcloud.autoscale.types import Provider as as_provider
 from libcloud.autoscale.types import AutoScaleTerminationPolicy, \
     AutoScaleAdjustmentType
 
-from libcloud.compute.providers import get_driver as compute_get_driver
+from libcloud.compute.providers import get_driver \
+    as compute_get_driver
 from libcloud.compute.types import Provider as compute_provider
 
 from libcloud.monitor.providers import get_driver as monitor_get_driver
 from libcloud.monitor.types import Provider as monitor_provider
 from libcloud.monitor.types import AutoScaleMetric, AutoScaleOperator
 
-ACCESS_ID = 'your access id'
-SECRET_KEY = 'your secret key'
-
-IMAGE_ID = 'ami-1ecae776'
-SIZE_ID = 't2.small'
+USER_NAME = 'your user name'
+PASSWORD = 'your password'
+TENANT_NAME = 'your tenant name'
 
 # Initialize the drivers
-driver = compute_get_driver(compute_provider.EC2)(ACCESS_ID, SECRET_KEY)
-as_driver = as_get_driver(as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
-mon_driver = monitor_get_driver(monitor_provider.AWS_CLOUDWATCH)(
-    ACCESS_ID, SECRET_KEY)
+driver = compute_get_driver(compute_provider.OPENSTACK)(
+    USER_NAME, PASSWORD, ex_tenant_name=TENANT_NAME,
+    ex_force_auth_url='http://1.2.3.4:5000',
+    ex_force_auth_version='2.0_password')
+as_driver = as_get_driver(as_provider.OPENSTACK)(
+    USER_NAME, PASSWORD, ex_tenant_name=TENANT_NAME,
+    ex_force_auth_url='http://1.2.3.4:5000',
+    ex_force_auth_version='2.0_password')
+mon_driver = monitor_get_driver(monitor_provider.OPENSTACK)(
+    USER_NAME, PASSWORD, ex_tenant_name=TENANT_NAME,
+    ex_force_auth_url='http://1.2.3.4:5000',
+    ex_force_auth_version='2.0_password')
 
-# Get image and size for autoscale member template
-images = driver.list_images()
-image = [i for i in images if i.id == IMAGE_ID][0]
-
-sizes = driver.list_sizes()
-size = [s for s in sizes if s.id == SIZE_ID][0]
-
+image = driver.list_images()[0]
 location = driver.list_locations()[0]
-group = as_driver.create_auto_scale_group(
-    group_name='libcloud-group', min_size=2, max_size=5,
-    cooldown=300,
-    termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
-    name='inst-name', image=image, size=size, location=location)
+size = driver.list_sizes()[0]
 
+# create an auto scale group
+group = as_driver.create_auto_scale_group(
+    group_name='libcloud-group-1', min_size=2, max_size=5,
+    cooldown=300,
+    termination_policies=[AutoScaleTerminationPolicy.DEFAULT],
+    name='inst-test', image=image, size=size, location=location)
 pprint(group)
-# create scale up policy
+
+# create another one
+group = as_driver.create_auto_scale_group(
+    group_name='libcloud-group-2', min_size=1, max_size=2,
+    cooldown=300,
+    termination_policies=[AutoScaleTerminationPolicy.DEFAULT],
+    name='inst-test', image=image, size=size, location=location)
+pprint(group)
+
 policy_scale_up = as_driver.create_auto_scale_policy(
     group=group, name='policy-scale-up',
     adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
     scaling_adjustment=1)
-
 pprint(policy_scale_up)
 
-# and associate it with cpu>80 alarm
+# associate it with cpu>80 alarm
 alarm_high_cpu = mon_driver.create_auto_scale_alarm(
     name='cpu-high', policy=policy_scale_up,
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.GT, threshold=80,
     period=120)
-
 pprint(alarm_high_cpu)
 
 # create scale down policy
@@ -61,7 +72,6 @@ policy_scale_down = as_driver.create_auto_scale_policy(
     group=group, name='policy-scale-down',
     adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
     scaling_adjustment=-1)
-
 pprint(policy_scale_down)
 
 # associate policy with a cpu<30 alarm
@@ -70,19 +80,19 @@ alarm_low_cpu = mon_driver.create_auto_scale_alarm(
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.LT, threshold=30,
     period=120)
-
 pprint(alarm_low_cpu)
 
-import time
-time.sleep(60)
+groups = as_driver.list_auto_scale_groups()
+pprint(groups)
 
 alarms = mon_driver.list_auto_scale_alarms(
     policy=policy_scale_up)
 pprint(alarms)
 
-nodes = as_driver.list_auto_scale_group_members(group=group)
-pprint(nodes)
+as_driver.delete_auto_scale_group(groups[0])
+as_driver.delete_auto_scale_group(groups[1])
 
-# delete group completely with all of its resources
-# (members, policies, alarms)
-as_driver.delete_auto_scale_group(group=group)
+time.sleep(30)
+
+groups = as_driver.list_auto_scale_groups()
+pprint(groups)
