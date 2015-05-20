@@ -89,18 +89,16 @@ class MonitorDriver(BaseDriver):
             key=key, secret=secret, secure=secure, host=host,
             port=port, api_version=api_version, **kwargs)
 
-    def create_auto_scale_alarm(self, name, action_ids, metric_name, operator,
+    def create_auto_scale_alarm(self, name, policy, metric_name, operator,
                                 threshold, period, **kwargs):
         """
-        Create an auto scale alarm for the given action ids.
+        Create an auto scale alarm for the given policy.
 
         :param name: Descriptive name of the alarm.
         :type name: ``str``
 
-        :param action_ids: The actions to execute when this alarm goes
-        off. Each action is specified as an ID to an action resource
-        (e.g. auto scale policy).
-        :type action_ids: ``list`` of `str`
+        :param policy: Policy object.
+        :type policy: :class:`.AutoScalePolicy`
 
         :param metric_name: The metric to watch.
         :type metric_name: value within :class:`AutoScaleMetric`
@@ -123,13 +121,12 @@ class MonitorDriver(BaseDriver):
         raise NotImplementedError(
             'create_auto_scale_alarm not implemented for this driver')
 
-    def list_auto_scale_alarms(self, action_ids):
+    def list_auto_scale_alarms(self, policy):
         """
-        List alarms associated with the given action ids.
+        List alarms associated with the given auto scale policy.
 
-        :param action_ids: List of IDs to action resources (e.g. auto
-        scale policies).
-        :type action_ids: ``list`` of `str`
+        :param policy: Policy object.
+        :type policy: :class:`.AutoScalePolicy`
 
         :rtype: ``list`` of ``AutoScaleAlarm``
         """

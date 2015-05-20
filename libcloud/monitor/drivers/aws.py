@@ -141,7 +141,7 @@ class AWSCloudWatchDriver(MonitorDriver):
                                                   secure=secure, host=host,
                                                   port=port, **kwargs)
 
-    def create_auto_scale_alarm(self, name, action_ids, metric_name, operator,
+    def create_auto_scale_alarm(self, name, policy, metric_name, operator,
                                 threshold, period, **kwargs):
         """
         @inherits: :class:`NodeDriver.create_auto_scale_alarm`
@@ -151,7 +151,7 @@ class AWSCloudWatchDriver(MonitorDriver):
         :type       ex_namespace: ``str``
         """
         data = {}
-        data['AlarmActions.member.1'] = action_ids[0]
+        data['AlarmActions.member.1'] = policy.id
         data['AlarmName'] = name
         if 'ex_namespace' not in kwargs:
             kwargs['ex_namespace'] = 'AWS/EC2'
@@ -178,16 +178,15 @@ class AWSCloudWatchDriver(MonitorDriver):
             res, 'DescribeAlarmsResult/MetricAlarms/member')
         return alarms[0]
 
-    def list_auto_scale_alarms(self, action_ids):
+    def list_auto_scale_alarms(self, policy):
         data = {}
         data['Action'] = 'DescribeAlarms'
         res = self.connection.request(self.path, params=data).object
         alarms = self._to_autoscale_alarms(
             res, 'DescribeAlarmsResult/MetricAlarms/member')
 
-        # return only alarms for this action id
-        return [a for a in alarms if a.extra.get(
-            'ex_action_ids')[0] == action_ids[0]]
+        # return only alarms for this policy
+        return [a for a in alarms if a.extra.get('ex_policy_id') == policy.id]
 
     def delete_auto_scale_alarm(self, alarm):
         data = {}
@@ -202,7 +201,6 @@ class AWSCloudWatchDriver(MonitorDriver):
                                       namespace=CLOUDWATCH_NAMESPACE))]
 
     def _to_autoscale_alarm(self, element):
-
         extra = {}
 
         name = findtext(element=element, xpath='AlarmName',
@@ -228,15 +226,15 @@ class AWSCloudWatchDriver(MonitorDriver):
                              namespace=CLOUDWATCH_NAMESPACE)
 
         def _to_alarm_action(element):
-            """Internal method to return action ARN for this alarm.
+            """Internal method to return Policy ARN for this alarm.
             It is assumed that alarm is associated with a single action
-            ARN.
+            ARN and that the action is an auto scale policy
             """
             return findtext(element=element, xpath='AlarmActions/member',
                             namespace=CLOUDWATCH_NAMESPACE)
 
-        actions_id = _to_alarm_action(element)
-        extra['ex_action_ids'] = [actions_id]
+        policy_id = _to_alarm_action(element)
+        extra['ex_policy_id'] = policy_id
 
         return AutoScaleAlarm(id=alarm_id, name=name, metric_name=metric,
                               operator=operator, period=int(period),

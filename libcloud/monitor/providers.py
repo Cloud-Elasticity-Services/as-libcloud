@@ -25,6 +25,8 @@ __all__ = [
 DRIVERS = {
     Provider.AWS_CLOUDWATCH:
     ('libcloud.monitor.drivers.aws', 'AWSCloudWatchDriver'),
+    Provider.OPENSTACK:
+    ('libcloud.monitor.drivers.openstack', 'OpenStackMonitorDriver'),
     Provider.SOFTLAYER:
     ('libcloud.monitor.drivers.softlayer', 'SoftLayerMonitorDriver'),
 }

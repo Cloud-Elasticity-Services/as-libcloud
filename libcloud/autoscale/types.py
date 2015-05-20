@@ -28,6 +28,7 @@ class Provider(object):
     """
     AWS_AUTOSCALE = 'aws_autoscale'
     SOFTLAYER = 'softlayer'
+    OPENSTACK = 'openstack'
 
 
 class AutoScaleAdjustmentType(object):

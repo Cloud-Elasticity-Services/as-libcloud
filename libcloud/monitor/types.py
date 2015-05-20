@@ -28,6 +28,7 @@ class Provider(object):
     :cvar SOFTLAYER: Softlayer
     """
     AWS_CLOUDWATCH = 'aws_cloudwatch'
+    OPENSTACK = 'openstack'
     SOFTLAYER = 'softlayer'
 
 

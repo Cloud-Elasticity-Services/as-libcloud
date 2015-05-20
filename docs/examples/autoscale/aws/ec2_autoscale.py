@@ -45,7 +45,7 @@ pprint(policy_scale_up)
 
 # and associate it with cpu>80 alarm
 alarm_high_cpu = mon_driver.create_auto_scale_alarm(
-    name='cpu-high', action_ids=[policy_scale_up.id],
+    name='cpu-high', policy=policy_scale_up,
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.GT, threshold=80,
     period=120)
@@ -62,7 +62,7 @@ pprint(policy_scale_down)
 
 # associate policy with a cpu<30 alarm
 alarm_low_cpu = mon_driver.create_auto_scale_alarm(
-    name='cpu-low', action_ids=[policy_scale_down.id],
+    name='cpu-low', policy=policy_scale_down,
     metric_name=AutoScaleMetric.CPU_UTIL,
     operator=AutoScaleOperator.LT, threshold=30,
     period=120)
@@ -73,7 +73,7 @@ import time
 time.sleep(60)
 
 alarms = mon_driver.list_auto_scale_alarms(
-    action_ids=[policy_scale_up.id])
+    policy=policy_scale_up)
 pprint(alarms)
 
 nodes = as_driver.list_auto_scale_group_members(group=group)

@@ -27,6 +27,8 @@ DRIVERS = {
     ('libcloud.autoscale.drivers.aws', 'AWSAutoScaleDriver'),
     Provider.SOFTLAYER:
     ('libcloud.autoscale.drivers.softlayer', 'SoftLayerAutoScaleDriver'),
+    Provider.OPENSTACK:
+    ('libcloud.autoscale.drivers.openstack', 'OpenStackAutoScaleDriver'),
 }
 
 
