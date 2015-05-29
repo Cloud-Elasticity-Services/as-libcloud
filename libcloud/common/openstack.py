@@ -354,12 +354,13 @@ class OpenStackResponse(Response):
             driver = self.connection.driver
             key_pair_name = context.get('key_pair_name', None)
 
-            if len(values) > 0 and values[0]['code'] == 404 and key_pair_name:
+            if len(values) > 0 and self.status == 404 and key_pair_name:
                 raise KeyPairDoesNotExistError(name=key_pair_name,
                                                driver=driver)
-            elif len(values) > 0 and 'message' in values[0]:
-                text = ';'.join([fault_data['message'] for fault_data
-                                 in values])
+            massages = [v['message'] for v in values
+                        if isinstance(v, dict) and 'message' in v]
+            if len(massages) > 0:
+                text = ';'.join(massages)
             else:
                 text = body
         else:
