@@ -21,6 +21,10 @@ from libcloud.autoscale.base import AutoScaleDriver, AutoScaleGroup, \
 from libcloud.autoscale.types import Provider, AutoScaleAdjustmentType
 from libcloud.common.types import LibcloudError
 
+from libcloud.compute.drivers.openstack import OpenStackNodeDriver
+from libcloud.compute.drivers.openstack import DEFAULT_API_VERSION as \
+    DEFAULT_COMPUTE_API_VERSION
+
 from libcloud.utils.misc import find, reverse_dict
 # from libcloud.utils.py3 import b
 
@@ -100,6 +104,14 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
                 (api_version))
 
         OpenStackDriverMixin.__init__(self, **kwargs)
+
+        if kwargs.get('openstack_driver'):
+            self.openstack = kwargs['openstack_driver']
+        else:
+            self.openstack = OpenStackNodeDriver(
+                key, secret=secret, secure=secure, host=host, port=port,
+                api_version=DEFAULT_COMPUTE_API_VERSION, **kwargs)
+
         super(OpenStackAutoScaleDriver, self).__init__(
             key=key, secret=secret, secure=secure, host=host,
             port=port, api_version=api_version,
@@ -217,8 +229,11 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         return groups
 
     def list_auto_scale_group_members(self, group):
-        # TODO: impl
-        pass
+        stack_id = group.id
+
+        nodes = self.openstack.list_nodes()
+        return [n for n in nodes if n.extra.get(
+            'metadata', {}).get('metering.stack', '') == stack_id]
 
     def create_auto_scale_policy(self, group, name, adjustment_type,
                                  scaling_adjustment):

@@ -92,8 +92,12 @@ pprint(alarm_low_cpu)
 
 groups = as_driver.list_auto_scale_groups()
 pprint(groups)
+
 print "Allow time for the group to scale out ..."
 time.sleep(300)
+
+nodes = as_driver.list_auto_scale_group_members(group)
+pprint(nodes)
 
 print "Terminating the group and all of its resources ..."
 as_driver.delete_auto_scale_group(groups[0])
