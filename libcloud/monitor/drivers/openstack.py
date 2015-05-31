@@ -37,7 +37,7 @@ from libcloud.common.openstack import OpenStackResponse
 __all__ = [
     'OpenStack_Response',
     'OpenStackHeatConnection',
-    'OpenStackMonitorDriver',
+    'OpenStackAutoScaleMonitorDriver',
 ]
 
 DEFAULT_API_VERSION = '1.0'
@@ -47,7 +47,7 @@ class OpenStack_Response(OpenStackResponse):
     def __init__(self, *args, **kwargs):
         # done because of a circular reference from
         # NodeDriver -> Connection -> Response
-        self.node_driver = OpenStackMonitorDriver
+        self.node_driver = OpenStackAutoScaleMonitorDriver
         super(OpenStack_Response, self).__init__(*args, **kwargs)
 
 
@@ -65,7 +65,15 @@ class OpenStackHeatConnection(OpenStackBaseConnection):
         return json.dumps(data)
 
 
-class OpenStackMonitorDriver(MonitorDriver, OpenStackDriverMixin):
+class OpenStackAutoScaleMonitorDriver(MonitorDriver, OpenStackDriverMixin):
+    """
+    OpenStack driver for auto-scale related monitoring such as:
+    auto-scale alarms.
+
+    Auto scale monitoring support (autoscale alarms) done through heat.
+    API based on v1.0 (current):
+    http://developer.openstack.org/api-ref-orchestration-v1.html
+    """
     api_name = 'openstack'
     name = 'OpenStack'
     website = 'http://openstack.org/'
@@ -80,7 +88,7 @@ class OpenStackMonitorDriver(MonitorDriver, OpenStackDriverMixin):
                 (api_version))
 
         OpenStackDriverMixin.__init__(self, **kwargs)
-        super(OpenStackMonitorDriver, self).__init__(
+        super(OpenStackAutoScaleMonitorDriver, self).__init__(
             key=key, secret=secret, secure=secure, host=host,
             port=port, api_version=api_version,
             **kwargs)

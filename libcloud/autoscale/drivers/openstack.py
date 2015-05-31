@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import base64
+# import base64
 from datetime import datetime
 import time
 
@@ -22,7 +22,7 @@ from libcloud.autoscale.types import Provider, AutoScaleAdjustmentType
 from libcloud.common.types import LibcloudError
 
 from libcloud.utils.misc import find, reverse_dict
-from libcloud.utils.py3 import b
+# from libcloud.utils.py3 import b
 
 """
 OpenStack driver.
@@ -123,9 +123,6 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         :type       ex_keyname: ``str``
 
         :keyword    ex_userdata: User data to be injected to group members.
-        :type       ex_userdata: ``str``
-
-        :keyword    ex_userdata: String containing user data.
         :type       ex_userdata: ``str``
 
         :keyword    ex_userdata_format: How the user_data should be formatted
@@ -439,8 +436,8 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
             server_params['key_name'] = attrs['ex_keyname']
 
         if 'ex_userdata' in attrs:
-            server_params['user_data'] = base64.b64encode(
-                b(attrs['ex_userdata'])).decode('ascii')
+            # TODO: encode user_data
+            server_params['user_data'] = attrs['ex_userdata']
 
         if 'ex_userdata_format' in attrs:
             server_params['user_data_format'] = attrs['ex_userdata_format']
