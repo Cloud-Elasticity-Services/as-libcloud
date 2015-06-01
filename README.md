@@ -60,7 +60,7 @@ Scaling capabilities.
     >>> group = as_driver.create_auto_scale_group(group_name='test', min_size=1,
             max_size=5, cooldown=300, image=driver.list_images()[0],
             termination_policies=[AutoScaleTerminationPolicy.OLDEST_INSTANCE],
-            location=driver.list_locations()[0], name='inst-test', ex_region='na-usa-east-1')
+            name='inst-test')
 
     # List auto scale groups
     >>> as_driver.list_auto_scale_groups()

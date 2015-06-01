@@ -20,13 +20,9 @@ SECRET_KEY = 'your secret key'
 DATACENTER = 'par01'
 REGION = 'eu-fra-north-1'
 
-CAPACITY = 50
-
-BACKEND_PORT1 = 8080
-BACKEND_PORT2 = 100
-
 lb_driver = lb_get_driver(lb_provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
-as_driver = as_get_driver(as_provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
+as_driver = as_get_driver(as_provider.SOFTLAYER)(USER_NAME, SECRET_KEY,
+                                                 region=REGION)
 driver = get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
 
 image = driver.list_images()[0]
@@ -39,7 +35,7 @@ print balancer
 
 if balancer.port < 0:
     # no front-end port defined, configure it with such one
-    driver.ex_configure_load_balancer(
+    lb_driver.ex_configure_load_balancer(
         balancer, port=80, protocol='http',
         algorithm=Algorithm.SHORTEST_RESPONSE)
 
@@ -51,23 +47,23 @@ group = as_driver.create_auto_scale_group(
     image=image, location=NodeLocation(DATACENTER,
                                        None, None, None),
     name='inst-test',
-    balancer=balancer, ex_service_port=8080,
-    ex_region=REGION)
+    balancer=balancer, ex_service_port=8080)
 
-print 'Created scale group: %s' % group
+print ('Created scale group: %s' % group)
 time.sleep(60)
 
 as_driver.ex_detach_balancer_from_auto_scale_group(group, balancer)
-print 'Detached balancer: %s from scale group: %s' % (balancer, group)
+print ('Detached balancer: %s from scale group: %s' % (balancer, group))
 time.sleep(30)
 
 as_driver.ex_attach_balancer_to_auto_scale_group(
     group=group, balancer=balancer,
-    ex_service_port=BACKEND_PORT2)
+    ex_service_port=100)
 
-print 'Attached balancer: %s to scale group: %s with backend port %s' %\
-    (balancer, group, BACKEND_PORT2)
+print (
+    'Attached balancer: %s to scale group: %s with backend port %s' %
+    (balancer, group, 100))
 time.sleep(30)
 
 as_driver.delete_auto_scale_group(group=group)
-print 'Deleted scale group: %s' % group
+print ('Deleted scale group: %s' % group)

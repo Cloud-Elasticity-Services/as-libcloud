@@ -14,13 +14,11 @@ SECRET_KEY = 'your secret key'
 driver = compute_get_driver(compute_provider.SOFTLAYER)(
     USER_NAME, SECRET_KEY)
 
-as_driver = get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
+as_driver = get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY,
+                                           region='eu-nld-central-1')
 
 image = driver.list_images()[0]
 size = driver.list_sizes()[0]
-
-# Dallas 5 datacenter
-location = driver.list_locations()[4]
 
 # create an auto scale group
 # (note: create is a long syncronious operation, be patient)
@@ -28,8 +26,7 @@ group = as_driver.create_auto_scale_group(
     group_name='libcloud-group', min_size=2, max_size=5,
     cooldown=300,
     termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
-    name='inst-test', image=image, size=size, location=location,
-    ex_region='na-usa-central-1')
+    name='inst-test', image=image, size=size)
 
 pprint(group)
 

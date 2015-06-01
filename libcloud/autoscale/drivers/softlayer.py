@@ -26,6 +26,14 @@ from libcloud.autoscale.types import Provider
 from libcloud.utils.misc import find, reverse_dict
 from libcloud.compute.drivers.softlayer import SoftLayerNodeDriver
 
+SL_REGIONS = [
+    'na-usa-east-1', 'na-usa-central-1', 'na-usa-west-1', 'na-usa-west-2',
+    'na-can-east-1', 'na-mex-central-1',
+    'eu-deu-west1', 'eu-fra-north-1', 'eu-nld-central-1', 'eu-gbr-south-1',
+    'as-hkg-central-1', 'as-jpn-central-1', 'as-sgp-central-1',
+    'oc-aus-south-1'
+]
+
 
 class SoftLayerAutoScaleDriver(AutoScaleDriver):
 
@@ -68,14 +76,19 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
     website = 'http://www.softlayer.com/'
     type = Provider.SOFTLAYER
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, key, secret, secure=True, region='na-usa-east-1',
+                 **kwargs):
+        if region not in SL_REGIONS:
+            raise ValueError('Invalid region: %s' % (region))
+        self.region_name = region
 
         if kwargs.get('softlayer'):
             self.softlayer = kwargs['softlayer']
         else:
-            self.softlayer = SoftLayerNodeDriver(*args, **kwargs)
+            self.softlayer = SoftLayerNodeDriver(key, secret, secure, **kwargs)
 
-        super(SoftLayerAutoScaleDriver, self).__init__(*args, **kwargs)
+        super(SoftLayerAutoScaleDriver, self).__init__(key, secret, secure,
+                                                       **kwargs)
 
     def list_auto_scale_groups(self):
 
@@ -92,19 +105,14 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
 
     def create_auto_scale_group(
             self, group_name, min_size, max_size, cooldown,
-            termination_policies, balancer=None, ex_region='na-usa-east-1',
-            **kwargs):
+            termination_policies, balancer=None, **kwargs):
         """
         Create a new auto scale group.
 
         @inherits: :class:`AutoScaleDriver.create_auto_scale_group`
 
-        :param ex_region: The region the group will be created
-        in. e.g. 'na-usa-east-1' (required)
-        :type  ex_region: ``str``
-
         :keyword    ex_service_port: Service port to be used by the group
-                                     members.
+                                     members (valid when balancer supplied).
         :type       ex_service_port: ``int``
 
         :return: The newly created scale group.
@@ -115,8 +123,6 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
 
         # Customize template per property 'virtualGuestMemberTemplate' at:
         # http://sldn.softlayer.com/reference/datatypes/SoftLayer_Scale_Group
-        if 'datacenter' not in template:
-            template['datacenter'] = {'name': 'FIRST_AVAILABLE'}
         template['hourlyBillingFlag'] = 'true'
 
         def _wait_for_creation(group_id):
@@ -140,10 +146,10 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         res = self.connection.request(
             'SoftLayer_Location_Group_Regional',
             'getAllObjects').object
-        r = find(res, lambda r: r['name'] == ex_region)
+        r = find(res, lambda r: r['name'] == self.region_name)
         if not r:
             raise SoftLayerException('Unable to find region id for region: %s'
-                                     % ex_region)
+                                     % self.region_name)
         rgn_grp_id = r['id']
 
         data = {}
@@ -550,8 +556,7 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         extra = {}
         extra['id'] = grp_id
         extra['state'] = grp['status']['keyName']
-        # TODO: set with region name
-        extra['region'] = 'softlayer'
+        extra['region'] = self.region_name
         extra['regionalGroupId'] = grp['regionalGroupId']
         extra['suspendedFlag'] = grp['suspendedFlag']
         extra['terminationPolicyId'] = grp['terminationPolicyId']
