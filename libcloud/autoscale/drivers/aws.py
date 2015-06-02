@@ -419,11 +419,15 @@ class AWSAutoScaleDriver(AutoScaleDriver):
 
     def create_auto_scale_group(
             self, group_name, min_size, max_size, cooldown,
-            termination_policies, balancer=None, **kwargs):
+            termination_policies, balancer=None, ex_availability_zones=None,
+            **kwargs):
         """
         Create a new auto scale group.
 
         @inherits: :class:`AutoScaleDriver.create_auto_scale_group`
+
+        :keyword    ex_availability_zones: The availability zones of the group.
+        :type       ex_availability_zones: ``list`` of ``str``
 
         :keyword    ex_launch_configuration_name: Launch configuration name.
         :type       ex_launch_configuration_name: ``str``
@@ -450,22 +454,12 @@ class AWSAutoScaleDriver(AutoScaleDriver):
 
         data['DefaultCooldown'] = cooldown
 
-        a_z = ''
-        if 'location' in kwargs:
-            availability_zone = getattr(kwargs['location'],
-                                        'availability_zone', None)
-            if availability_zone:
-                if availability_zone.region_name != self.region_name:
-                    raise AttributeError('Invalid availability zone: %s'
-                                         ' for region: %s'
-                                         % (availability_zone.name,
-                                            self.region_name))
-                a_z = availability_zone.name
+        if ex_availability_zones is None:
+            ex_availability_zones = ['a']
 
-        if not a_z:
-            a_z = ''.join((self.region_name, "a"))
-
-        data['AvailabilityZones.member.1'] = a_z
+        for i, z in enumerate(ex_availability_zones):
+            zone = ''.join((self.region_name, z))
+            data['AvailabilityZones.member.%d' % (i + 1)] = zone
 
         if 'name' in kwargs:
             data['Tags.member.1.Key'] = 'Name'
@@ -736,13 +730,10 @@ class AWSAutoScaleDriver(AutoScaleDriver):
         :rtype: ``list`` of ``str``
         """
         availability_zones = []
-        for item in findall(element=element, xpath='AvailabilityZones',
+        for item in findall(element=element, xpath='AvailabilityZones/member',
                             namespace=AUTOSCALE_NAMESPACE):
-
-            az = findtext(element=item, xpath='member',
-                          namespace=AUTOSCALE_NAMESPACE)
-            if az is not None:
-                availability_zones.append(az)
+            if item.text is not None:
+                availability_zones.append(item.text)
 
         return availability_zones
 

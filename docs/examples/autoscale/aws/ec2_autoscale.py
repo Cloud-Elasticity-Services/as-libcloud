@@ -11,7 +11,6 @@ from libcloud.autoscale.providers import get_driver
 ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
 
-IMAGE_ID = 'ami-1ecae776'
 SIZE_ID = 't2.small'
 
 ec2_driver = compute_get_driver(compute_provider.EC2)(ACCESS_ID, SECRET_KEY)
@@ -21,20 +20,17 @@ as_driver = get_driver(Provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
 cw_driver = get_driver(Provider.AWS_CLOUDWATCH)(ACCESS_ID, SECRET_KEY)
 
 # Get image and size for autoscale member template
-images = ec2_driver.list_images()
-image = [i for i in images if i.id == IMAGE_ID][0]
-
+image = ec2_driver.list_images(ex_image_ids=['ami-1ecae776'])[0]
 sizes = ec2_driver.list_sizes()
 size = [s for s in sizes if s.id == SIZE_ID][0]
 
-location = ec2_driver.list_locations()[0]
 group = as_driver.create_auto_scale_group(
     group_name='libcloud-group', min_size=2, max_size=5,
     cooldown=300,
     termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
-    name='inst-name', image=image, size=size, location=location)
+    name='inst-name', image=image, size=size)
 
-pprint(group)
+print('%s %s' % (group, group.extra))
 # create scale up policy
 policy_scale_up = as_driver.create_auto_scale_policy(
     group=group, name='policy-scale-up',

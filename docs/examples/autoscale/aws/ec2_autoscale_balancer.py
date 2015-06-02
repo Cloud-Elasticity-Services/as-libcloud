@@ -1,6 +1,5 @@
 import time
 
-from libcloud.compute.base import NodeImage
 from libcloud.compute.types import Provider as compute_provider
 from libcloud.compute.providers import get_driver \
     as compute_get_driver
@@ -16,7 +15,6 @@ from libcloud.loadbalancer.providers import get_driver as lb_get_driver
 ACCESS_ID = 'your access id'
 SECRET_KEY = 'your secret key'
 
-IMAGE_ID = 'ami-d114f295'
 SIZE_ID = 't2.small'
 
 REGION = 'us-west-1'
@@ -29,8 +27,7 @@ as_driver = as_get_driver(
 
 lb_driver = lb_get_driver(lb_provider.ELB)(ACCESS_ID, SECRET_KEY, REGION)
 
-# image for the auto scale members
-image = NodeImage(IMAGE_ID, None, None)
+image = ec2_driver.list_images(ex_image_ids=['ami-d114f295'])[0]
 
 sizes = ec2_driver.list_sizes()
 size = [s for s in sizes if s.id == SIZE_ID][0]
@@ -44,7 +41,6 @@ balancer = lb_driver.create_balancer(
     members=[])
 
 print(balancer)
-time.sleep(60)
 
 # create scale group with balancer (group and balancer are
 # in same availability zone)
@@ -54,9 +50,9 @@ group = as_driver.create_auto_scale_group(
     termination_policies=[AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE],
     balancer=balancer, name='test-node', image=image, size=size)
 
-print(group)
+print('%s %s' % (group, group.extra))
 
-time.sleep(120)
+time.sleep(60)
 
 nodes = as_driver.list_auto_scale_group_members(group=group)
 print(nodes)
