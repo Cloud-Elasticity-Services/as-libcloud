@@ -119,8 +119,9 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         :rtype: :class:`.AutoScaleGroup`
         """
         DEFAULT_TIMEOUT = 12000
+        # hostname of the nodes either based on supplied name or group_name
+        kwargs['name'] = kwargs.get('name') or group_name
         template = self.softlayer._to_virtual_guest_template(**kwargs)
-
         # Customize template per property 'virtualGuestMemberTemplate' at:
         # http://sldn.softlayer.com/reference/datatypes/SoftLayer_Scale_Group
         template['hourlyBillingFlag'] = 'true'

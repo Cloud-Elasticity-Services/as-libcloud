@@ -17,7 +17,9 @@ from libcloud.compute.providers import get_driver
 USER_NAME = 'your user name'
 SECRET_KEY = 'your secret key'
 
+# the datacenter of the loadbalancer
 DATACENTER = 'par01'
+# the region of the auto-scale group
 REGION = 'eu-fra-north-1'
 
 lb_driver = lb_get_driver(lb_provider.SOFTLAYER)(USER_NAME, SECRET_KEY)
@@ -35,18 +37,17 @@ print balancer
 
 if balancer.port < 0:
     # no front-end port defined, configure it with such one
-    lb_driver.ex_configure_load_balancer(
+    balancer = lb_driver.ex_configure_load_balancer(
         balancer, port=80, protocol='http',
         algorithm=Algorithm.SHORTEST_RESPONSE)
 
 # create scale group with balancer and backend port of 8080
-# Note: scale group members must be in same datacenter balancer is
+# NOTE: scale group members must be in the same datacenter of balancer
 group = as_driver.create_auto_scale_group(
     group_name='libcloud-group', min_size=1, max_size=5, cooldown=300,
     termination_policies=AutoScaleTerminationPolicy.CLOSEST_TO_NEXT_CHARGE,
     image=image, location=NodeLocation(DATACENTER,
                                        None, None, None),
-    name='inst-test',
     balancer=balancer, ex_service_port=8080)
 
 print ('Created scale group: %s' % group)

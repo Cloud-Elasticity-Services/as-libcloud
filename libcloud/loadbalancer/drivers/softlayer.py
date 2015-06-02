@@ -106,12 +106,8 @@ class SoftlayerLBDriver(Driver):
         return [self._to_balancer(lb) for lb in res]
 
     def get_balancer(self, balancer_id):
-        balancers = self.list_balancers()
-        balancer = find(balancers, lambda b: b.id == balancer_id)
-        if not balancer:
-            raise LibcloudError(value='No balancer found for id: %s' %
-                                balancer_id, driver=self)
-        return balancer
+        lb = self._get_balancer_model(balancer_id)
+        return self._to_balancer(lb)
 
     def list_protocols(self):
         """
@@ -239,8 +235,7 @@ class SoftlayerLBDriver(Driver):
                               allocations to allocate for this group.
         :type  ex_allocation: ``int``
 
-        :return: ``True`` if ex_add_service_group was successful.
-        :rtype: ``bool``
+        :rtype: :class:`LoadBalancer`
         """
         _types = self._get_routing_types()
         _methods = self._get_routing_methods()
@@ -274,25 +269,29 @@ class SoftlayerLBDriver(Driver):
 
         lb['virtualServers'].append(service_group_template)
         self.connection.request(lb_service, 'editObject', lb, id=balancer.id)
-        return True
+        return self.get_balancer(balancer.id)
 
     def _get_balancer_model(self, balancer_id):
         """
         Retrieve Softlayer loadbalancer model.
         """
         lb_mask = {
+            'ipAddress': '',
+            'loadBalancerHardware': {
+                'datacenter': ''
+            },
             'virtualServers': {
                 'serviceGroups': {
+                    'routingMethod': '',
+                    'routingType': '',
                     'services': {
                         'ipAddress': '',
                         'groupReferences': '',
                     }
                 },
-                'scaleLoadBalancers': {
-                }
+                'scaleLoadBalancers': {}
             }
         }
-
         lb_res = self.connection.request(lb_service, 'getObject',
                                          object_mask=lb_mask, id=balancer_id).\
             object

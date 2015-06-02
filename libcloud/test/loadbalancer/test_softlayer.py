@@ -87,7 +87,7 @@ class SoftlayerLBTests(unittest.TestCase):
         self.assertEqual(member.port, 8000)
 
     def test_balancer_detach_member(self):
-        balancer = self.driver.get_balancer(balancer_id='76265')
+        balancer = self.driver.get_balancer(balancer_id='76185')
         member = Member('226227', None, None)
 
         self.assertTrue(balancer.detach_member(member))

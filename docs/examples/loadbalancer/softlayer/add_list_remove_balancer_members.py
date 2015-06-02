@@ -12,8 +12,9 @@ balancer = driver.list_balancers()[0]
 
 if balancer.port < 0:
     # no front-end port defined, configure it with such one
-    driver.ex_configure_load_balancer(balancer, port=80, protocol='http',
-                                      algorithm=DEFAULT_ALGORITHM)
+    balancer = driver.ex_configure_load_balancer(balancer, port=80,
+                                                 protocol='http',
+                                                 algorithm=DEFAULT_ALGORITHM)
 
 member1 = balancer.attach_member(Member(None, '192.168.88.1', 8000))
 member2 = balancer.attach_member(Member(None, '192.168.88.2', 8080))
