@@ -1,5 +1,10 @@
 import time
 
+from libcloud.autoscale.providers import get_driver \
+    as as_get_driver
+from libcloud.autoscale.types import Provider as as_provider
+from libcloud.autoscale.types import AutoScaleTerminationPolicy
+
 from libcloud.compute.providers import get_driver \
     as compute_get_driver
 from libcloud.compute.types import Provider as compute_provider

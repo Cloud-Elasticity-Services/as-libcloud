@@ -20,8 +20,8 @@ SECRET_KEY = 'your secret key'
 driver = compute_get_driver(compute_provider.SOFTLAYER)(
     USER_NAME, SECRET_KEY)
 
-as_driver = as_get_driver(Provider.SOFTLAYER)(USER_NAME, SECRET_KEY,
-                                              region='na-usa-central-1')
+as_driver = as_get_driver(as_provider.SOFTLAYER)(USER_NAME, SECRET_KEY,
+                                                 region='na-usa-central-1')
 mon_driver = monitor_get_driver(monitor_provider.SOFTLAYER)(
     USER_NAME, SECRET_KEY)
 

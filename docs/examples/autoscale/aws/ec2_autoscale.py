@@ -18,7 +18,7 @@ SECRET_KEY = 'your secret key'
 SIZE_ID = 't2.small'
 
 # Initialize the drivers
-driver = compute_get_driver(compute_provider.EC2)(ACCESS_ID, SECRET_KEY)
+ec2_driver = compute_get_driver(compute_provider.EC2)(ACCESS_ID, SECRET_KEY)
 as_driver = as_get_driver(as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
 mon_driver = monitor_get_driver(monitor_provider.AWS_CLOUDWATCH)(
     ACCESS_ID, SECRET_KEY)

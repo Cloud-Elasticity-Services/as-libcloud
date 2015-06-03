@@ -10,11 +10,11 @@ SECRET_KEY = 'your secret key'
 # Initialize the drivers
 as_driver = as_get_driver(as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
 
-groups = as_driver.list_auto_scale_groups()
+group = as_driver.list_auto_scale_groups()[0]
 
 # create scale up policy
 policy_scale_up = as_driver.create_auto_scale_policy(
-    group=groups[0], name='policy-scale-up',
+    group=group, name='policy-scale-up',
     adjustment_type=AutoScaleAdjustmentType.CHANGE_IN_CAPACITY,
     scaling_adjustment=1)
 pprint(policy_scale_up)

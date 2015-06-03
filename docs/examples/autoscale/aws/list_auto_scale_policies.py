@@ -8,7 +8,7 @@ SECRET_KEY = 'your secret key'
 
 as_driver = as_get_driver(as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
 
-groups = as_driver.list_auto_scale_groups()
-policies = as_driver.list_auto_scale_policies(groups[0])
+group = as_driver.list_auto_scale_groups()[0]
+policies = as_driver.list_auto_scale_policies(group)
 
 pprint(policies)

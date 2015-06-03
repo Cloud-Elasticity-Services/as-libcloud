@@ -6,8 +6,8 @@ SECRET_KEY = 'your secret key'
 
 as_driver = as_get_driver(as_provider.AWS_AUTOSCALE)(ACCESS_ID, SECRET_KEY)
 
-groups = as_driver.list_auto_scale_groups()
+group = as_driver.list_auto_scale_groups()[0]
 
 # delete group completely with all of its resources
 # (members, policies, alarms)
-as_driver.delete_auto_scale_group(groups[0])
+as_driver.delete_auto_scale_group(group)
