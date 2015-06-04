@@ -25,7 +25,7 @@ from libcloud.compute.drivers.openstack import OpenStackNodeDriver
 from libcloud.compute.drivers.openstack import DEFAULT_API_VERSION as \
     DEFAULT_COMPUTE_API_VERSION
 
-from libcloud.utils.misc import find, reverse_dict
+from libcloud.utils.misc import find, get_new_obj, reverse_dict
 # from libcloud.utils.py3 import b
 
 """
@@ -217,6 +217,46 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         stack_id = res['stack']['id']
         _wait_for_creation(group_name, stack_id)
         return self._get_auto_scale_group(group_name, stack_id)
+
+    def update_auto_scale_group(self, group, min_size=None, max_size=None):
+        def _wait_for_update(stack_name, stack_id, pre_update_ts):
+            DEFAULT_TIMEOUT = 600
+            POLL_INTERVAL = 5
+
+            end = time.time() + DEFAULT_TIMEOUT
+            completed = False
+            while time.time() < end and not completed:
+                stack = self._get_stack(stack_name, stack_id)
+                stack_status = stack['stack_status']
+                ts_completed = self._iso_to_datetime(
+                    stack.get('updated_time')) > pre_update_ts
+                if (stack_status == 'UPDATE_COMPLETE' and ts_completed) or \
+                        stack_status == 'UPDATE_FAILED':
+                    completed = True
+                else:
+                    time.sleep(POLL_INTERVAL)
+
+            if not completed:
+                raise LibcloudError('Group update did not complete in %s'
+                                    ' seconds' % (DEFAULT_TIMEOUT))
+
+        stack_name = group.name
+        stack_id = group.id
+
+        params = {}
+        if min_size:
+            params['min_size'] = int(min_size)
+        if max_size:
+            params['max_size'] = int(max_size)
+
+        template_res = self._get_stack_template(stack_name, stack_id)
+        template_res['resources'][group.name]['properties'].update(params)
+        pre_update_ts = self._stack_update(stack_name, stack_id, template_res)
+        _wait_for_update(stack_name, stack_id, pre_update_ts)
+        updated_group = get_new_obj(obj=group, klass=AutoScaleGroup,
+                                    attributes={'min_size': min_size,
+                                                'max_size': max_size})
+        return updated_group
 
     def list_auto_scale_groups(self):
         res = self.connection.request('/stacks').object

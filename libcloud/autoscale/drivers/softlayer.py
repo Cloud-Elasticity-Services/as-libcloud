@@ -23,7 +23,7 @@ from libcloud.autoscale.base import AutoScaleDriver, AutoScalePolicy, \
 from libcloud.autoscale.types import AutoScaleTerminationPolicy, \
     AutoScaleAdjustmentType
 from libcloud.autoscale.types import Provider
-from libcloud.utils.misc import find, reverse_dict
+from libcloud.utils.misc import find, get_new_obj, reverse_dict
 from libcloud.compute.drivers.softlayer import SoftLayerNodeDriver
 
 SL_REGIONS = [
@@ -180,6 +180,39 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         group = self._to_autoscale_group(res)
 
         return group
+
+    def update_auto_scale_group(self, group, min_size=None, max_size=None):
+        def _wait_for_update(group_id):
+            DEFAULT_TIMEOUT = 12000
+            # 5 seconds
+            POLL_INTERVAL = 5
+
+            end = time.time() + DEFAULT_TIMEOUT
+            completed = False
+            while time.time() < end and not completed:
+                status_name = self._get_group_status(group_id)
+                if status_name != 'ACTIVE':
+                    time.sleep(POLL_INTERVAL)
+                else:
+                    completed = True
+
+            if not completed:
+                raise LibcloudError('Group creation did not complete in %s'
+                                    ' seconds' % (DEFAULT_TIMEOUT))
+
+        data = {}
+        if min_size:
+            data['minimumMemberCount'] = min_size
+        if max_size:
+            data['maximumMemberCount'] = max_size
+
+        self.connection.request('SoftLayer_Scale_Group', 'editObject',
+                                data, id=group.id)
+        _wait_for_update(group.id)
+        updated_group = get_new_obj(obj=group, klass=AutoScaleGroup,
+                                    attributes={'min_size': min_size,
+                                                'max_size': max_size})
+        return updated_group
 
     def list_auto_scale_group_members(self, group):
         mask = {

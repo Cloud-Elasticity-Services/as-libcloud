@@ -161,9 +161,26 @@ class AutoScaleDriver(BaseDriver):
         :return: The newly created scale group.
         :rtype: :class:`.AutoScaleGroup`
         """
-
         raise NotImplementedError(
             'create_auto_scale_group not implemented for this driver')
+
+    def update_auto_scale_group(self, group, min_size, max_size):
+        """
+        Updates an existing group.
+
+        :param   group: Group object.
+        :type    group: :class:`AutoScaleGroup`
+
+        :param   min_size: Minimum membership size of group.
+        :type    min_size: ``int``
+
+        :param   max_size: Maximum membership size of group.
+        :type    max_size: ``int``
+
+        :rtype: :class:`AutoScaleGroup`
+        """
+        raise NotImplementedError(
+            'update_balancer not implemented for this driver')
 
     def list_auto_scale_groups(self):
         """

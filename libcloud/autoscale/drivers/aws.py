@@ -17,7 +17,7 @@ import time
 
 from libcloud.utils.py3 import b
 
-from libcloud.utils.misc import reverse_dict
+from libcloud.utils.misc import get_new_obj, reverse_dict
 from libcloud.utils.xml import fixxpath, findtext, findall
 from libcloud.common.aws import AWSGenericResponse,\
     AWSObjectDoesntExist
@@ -254,6 +254,23 @@ class AWSAutoScaleDriver(AutoScaleDriver):
                                            'DescribeAutoScalingGroupsResult'
                                            '/AutoScalingGroups/member')
         return groups[0]
+
+    def update_auto_scale_group(self, group, min_size=None, max_size=None):
+        data = {}
+
+        data['Action'] = 'UpdateAutoScalingGroup'
+        data['AutoScalingGroupName'] = group.name
+        if min_size:
+            data['MinSize'] = min_size
+        if max_size:
+            data['MaxSize'] = max_size
+        # per AWS documentation, group is set with new settings after call
+        # completes
+        self.connection.request(self.path, params=data)
+        updated_group = get_new_obj(obj=group, klass=AutoScaleGroup,
+                                    attributes={'min_size': min_size,
+                                                'max_size': max_size})
+        return updated_group
 
     def list_auto_scale_groups(self):
 
