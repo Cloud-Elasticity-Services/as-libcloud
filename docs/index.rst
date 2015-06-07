@@ -13,6 +13,7 @@ Resource you can manage with Libcloud are divided in the following categories:
   Rackspace CloudFiles
 * :doc:`Load Balancers as a Service </loadbalancer/index>` - services such as Amazon Elastic Load Balancer and GoGrid LoadBalancers
 * :doc:`DNS as a Service </dns/index>` - services such as Amazon Route 53 and Zerigo
+* :doc:`AutoScale as a Service </autoscale/index>` - services such as Amazon AutoScaling, OpenStack Autoscale (through Heat) and SoftLayer
 
 .. figure:: /_static/images/supported_providers.png
     :align: center
@@ -36,6 +37,7 @@ Main
     storage/index
     loadbalancer/index
     dns/index
+    autoscale/index
     troubleshooting
     api_docs
     faq

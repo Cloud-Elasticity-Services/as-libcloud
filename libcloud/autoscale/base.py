@@ -28,7 +28,7 @@ class AutoScaleGroup(object):
     def __init__(self, id, name, min_size, max_size, cooldown,
                  termination_policies, driver, extra=None):
         """
-        :param name: name.
+        :param name: Group name.
         :type name: ``str``
 
         :param min_size: Minimum membership size of group.
@@ -42,7 +42,7 @@ class AutoScaleGroup(object):
 
         :param termination_policies: Termination policies for this group.
         :type termination_policies: array of values within
-                                  :class:`AutoScaleTerminationPolicy`
+                                  :class:`.AutoScaleTerminationPolicy`
         """
         self.id = str(id) if id else None
         self.name = name
@@ -74,7 +74,7 @@ class AutoScalePolicy(object):
         :type scaling_adjustment: int
 
         :param adjustment_type: The adjustment type.
-        :type adjustment_type: value within :class:`AutoScaleAdjustmentType`
+        :type adjustment_type: value within :class:`.AutoScaleAdjustmentType`
         """
         self.id = str(id) if id else None
         self.name = name
@@ -169,7 +169,7 @@ class AutoScaleDriver(BaseDriver):
         Updates an existing group.
 
         :param   group: Group object.
-        :type    group: :class:`AutoScaleGroup`
+        :type    group: :class:`.AutoScaleGroup`
 
         :param   min_size: Minimum membership size of group.
         :type    min_size: ``int``
@@ -184,7 +184,7 @@ class AutoScaleDriver(BaseDriver):
 
     def list_auto_scale_groups(self):
         """
-        :rtype: ``list`` of ``AutoScaleGroup``
+        :rtype: ``list`` of ``.AutoScaleGroup``
         """
         raise NotImplementedError(
             'list_auto_scale_groups not implemented for this driver')
@@ -235,7 +235,7 @@ class AutoScaleDriver(BaseDriver):
         :param policy: Group object.
         :type policy: :class:`.AutoScaleGroup`
 
-        :rtype: ``list`` of ``AutoScalePolicy``
+        :rtype: ``list`` of ``.AutoScalePolicy``
         """
         raise NotImplementedError(
             'list_auto_scale_policies not implemented for this driver')

@@ -38,7 +38,7 @@ class AutoScaleAlarm(object):
         :type period: ``int``
 
         :param operator: The operator to use for comparison.
-        :type operator: value within :class:`AutoScaleOperator`
+        :type operator: value within :class:`.AutoScaleOperator`
 
         :param threshold: The value against which the specified statistic is
                           compared
@@ -101,10 +101,10 @@ class MonitorDriver(BaseDriver):
         :type policy: :class:`.AutoScalePolicy`
 
         :param metric_name: The metric to watch.
-        :type metric_name: value within :class:`AutoScaleMetric`
+        :type metric_name: value within :class:`.AutoScaleMetric`
 
         :param operator: The operator to use for comparison.
-        :type operator: value within :class:`AutoScaleOperator`
+        :type operator: value within :class:`.AutoScaleOperator`
 
         :param threshold: The value against which the specified statistic is
                           compared

@@ -24,11 +24,12 @@ class Provider(object):
     Defines for each of the supported providers
 
     :cvar AWS_AUTOSCALE: Amazon AutoScale
+    :cvar OPENSTACK: OpenStack
     :cvar SOFTLAYER: Softlayer
     """
     AWS_AUTOSCALE = 'aws_autoscale'
-    SOFTLAYER = 'softlayer'
     OPENSTACK = 'openstack'
+    SOFTLAYER = 'softlayer'
 
 
 class AutoScaleAdjustmentType(object):
@@ -54,7 +55,7 @@ class AutoScaleTerminationPolicy(object):
     :cvar OLDEST_INSTANCE: Terminates the oldest instance in the group.
     :cvar NEWEST_INSTANCE: Terminates the newest instance in the group.
     :cvar CLOSEST_TO_NEXT_CHARGE: Terminates instances that are closest to the
-    next billing charge.
+                                  next billing charge.
     :cvar DEFAULT: Default termination policy.
 
     """
