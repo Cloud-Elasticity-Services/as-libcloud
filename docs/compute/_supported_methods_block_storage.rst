@@ -9,7 +9,9 @@ Provider                              list volumes create volume destroy volume 
 `CloudFrames`_                        no           no            no             no            no            no             no             
 `CloudSigma (API v2.0)`_              no           no            no             no            no            no             no             
 `CloudStack`_                         yes          yes           yes            yes           yes           no             yes            
+`Cloudwatt`_                          yes          yes           yes            yes           yes           yes            yes            
 `DigitalOcean`_                       no           no            no             no            no            no             no             
+`DimensionData`_                      no           no            no             no            no            no             no             
 `Dreamhost`_                          no           no            no             no            no            no             no             
 `Amazon EC2`_                         yes          yes           yes            yes           yes           yes            yes            
 `Amazon EC2 (ap-northeast-1)`_        yes          yes           yes            yes           yes           yes            yes            
@@ -53,6 +55,7 @@ Provider                              list volumes create volume destroy volume 
 `Opsource`_                           no           no            no             no            no            no             no             
 `Outscale INC`_                       yes          yes           yes            yes           yes           yes            yes            
 `Outscale SAS`_                       yes          yes           yes            yes           yes           yes            yes            
+`Packet`_                             no           no            no             no            no            no             no             
 `ProfitBricks`_                       yes          yes           yes            yes           yes           no             no             
 `Rackspace Cloud (Next Gen)`_         yes          yes           yes            yes           yes           yes            yes            
 `Rackspace Cloud (First Gen)`_        yes          yes           yes            yes           yes           no             no             
@@ -77,7 +80,9 @@ Provider                              list volumes create volume destroy volume 
 .. _`CloudFrames`: http://www.cloudframes.net/
 .. _`CloudSigma (API v2.0)`: http://www.cloudsigma.com/
 .. _`CloudStack`: http://cloudstack.org/
+.. _`Cloudwatt`: https://www.cloudwatt.com/
 .. _`DigitalOcean`: https://www.digitalocean.com
+.. _`DimensionData`: http://www.dimensiondata.com/
 .. _`Dreamhost`: http://dreamhost.com/
 .. _`Amazon EC2`: http://aws.amazon.com/ec2/
 .. _`Amazon EC2 (ap-northeast-1)`: http://aws.amazon.com/ec2/
@@ -121,6 +126,7 @@ Provider                              list volumes create volume destroy volume 
 .. _`Opsource`: http://www.opsource.net/
 .. _`Outscale INC`: http://www.outscale.com
 .. _`Outscale SAS`: http://www.outscale.com
+.. _`Packet`: http://www.packet.net/
 .. _`ProfitBricks`: http://www.profitbricks.com
 .. _`Rackspace Cloud (Next Gen)`: http://www.rackspace.com
 .. _`Rackspace Cloud (First Gen)`: http://www.rackspace.com

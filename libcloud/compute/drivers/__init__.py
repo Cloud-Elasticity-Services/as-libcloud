@@ -21,6 +21,7 @@ __all__ = [
     'abiquo',
     'brightbox',
     'bluebox',
+    'dimensiondata',
     'dummy',
     'aws_autoscaling',
     'ec2',

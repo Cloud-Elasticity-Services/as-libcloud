@@ -9,7 +9,9 @@ Provider                              Documentation                             
 `CloudFrames`_                        :doc:`Click </compute/drivers/cloudframes>`   CLOUDFRAMES         :mod:`libcloud.compute.drivers.cloudframes`    :class:`CloudFramesNodeDriver`      
 `CloudSigma (API v2.0)`_              :doc:`Click </compute/drivers/cloudsigma>`    CLOUDSIGMA          :mod:`libcloud.compute.drivers.cloudsigma`     :class:`CloudSigmaNodeDriver`       
 `CloudStack`_                         :doc:`Click </compute/drivers/cloudstack>`    CLOUDSTACK          :mod:`libcloud.compute.drivers.cloudstack`     :class:`CloudStackNodeDriver`       
+`Cloudwatt`_                          :doc:`Click </compute/drivers/cloudwatt>`     CLOUDWATT           :mod:`libcloud.compute.drivers.cloudwatt`      :class:`CloudwattNodeDriver`        
 `DigitalOcean`_                       :doc:`Click </compute/drivers/digital_ocean>` DIGITAL_OCEAN       :mod:`libcloud.compute.drivers.digitalocean`   :class:`DigitalOceanNodeDriver`     
+`DimensionData`_                      :doc:`Click </compute/drivers/dimensiondata>` DIMENSIONDATA       :mod:`libcloud.compute.drivers.dimensiondata`  :class:`DimensionDataNodeDriver`    
 `Dreamhost`_                                                                        DREAMHOST           :mod:`libcloud.compute.drivers.dreamhost`      :class:`DreamhostNodeDriver`        
 `Amazon EC2`_                         :doc:`Click </compute/drivers/ec2>`           EC2                 :mod:`libcloud.compute.drivers.ec2`            :class:`EC2NodeDriver`              
 `Amazon EC2 (ap-northeast-1)`_                                                      EC2_AP_NORTHEAST    :mod:`libcloud.compute.drivers.ec2`            :class:`EC2APNENodeDriver`          
@@ -53,6 +55,7 @@ Provider                              Documentation                             
 `Opsource`_                                                                         OPSOURCE            :mod:`libcloud.compute.drivers.opsource`       :class:`OpsourceNodeDriver`         
 `Outscale INC`_                       :doc:`Click </compute/drivers/outscale_inc>`  OUTSCALE_INC        :mod:`libcloud.compute.drivers.ec2`            :class:`OutscaleINCNodeDriver`      
 `Outscale SAS`_                       :doc:`Click </compute/drivers/outscale_sas>`  OUTSCALE_SAS        :mod:`libcloud.compute.drivers.ec2`            :class:`OutscaleSASNodeDriver`      
+`Packet`_                             :doc:`Click </compute/drivers/packet>`        PACKET              :mod:`libcloud.compute.drivers.packet`         :class:`PacketNodeDriver`           
 `ProfitBricks`_                                                                     PROFIT_BRICKS       :mod:`libcloud.compute.drivers.profitbricks`   :class:`ProfitBricksNodeDriver`     
 `Rackspace Cloud (Next Gen)`_         :doc:`Click </compute/drivers/rackspace>`     RACKSPACE           :mod:`libcloud.compute.drivers.rackspace`      :class:`RackspaceNodeDriver`        
 `Rackspace Cloud (First Gen)`_                                                      RACKSPACE_FIRST_GEN :mod:`libcloud.compute.drivers.rackspace`      :class:`RackspaceFirstGenNodeDriver`
@@ -77,7 +80,9 @@ Provider                              Documentation                             
 .. _`CloudFrames`: http://www.cloudframes.net/
 .. _`CloudSigma (API v2.0)`: http://www.cloudsigma.com/
 .. _`CloudStack`: http://cloudstack.org/
+.. _`Cloudwatt`: https://www.cloudwatt.com/
 .. _`DigitalOcean`: https://www.digitalocean.com
+.. _`DimensionData`: http://www.dimensiondata.com/
 .. _`Dreamhost`: http://dreamhost.com/
 .. _`Amazon EC2`: http://aws.amazon.com/ec2/
 .. _`Amazon EC2 (ap-northeast-1)`: http://aws.amazon.com/ec2/
@@ -121,6 +126,7 @@ Provider                              Documentation                             
 .. _`Opsource`: http://www.opsource.net/
 .. _`Outscale INC`: http://www.outscale.com
 .. _`Outscale SAS`: http://www.outscale.com
+.. _`Packet`: http://www.packet.net/
 .. _`ProfitBricks`: http://www.profitbricks.com
 .. _`Rackspace Cloud (Next Gen)`: http://www.rackspace.com
 .. _`Rackspace Cloud (First Gen)`: http://www.rackspace.com
