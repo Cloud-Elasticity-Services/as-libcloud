@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # import base64
-from datetime import datetime
 import time
 
 from libcloud.autoscale.base import AutoScaleDriver, AutoScaleGroup, \
@@ -25,7 +24,8 @@ from libcloud.compute.drivers.openstack import OpenStackNodeDriver
 from libcloud.compute.drivers.openstack import DEFAULT_API_VERSION as \
     DEFAULT_COMPUTE_API_VERSION
 
-from libcloud.utils.misc import find, get_new_obj, reverse_dict
+from libcloud.utils.misc import find, get_new_obj, iso_to_datetime, \
+    reverse_dict
 # from libcloud.utils.py3 import b
 
 """
@@ -33,18 +33,14 @@ OpenStack driver.
 Autoscale support done through heat. API based on v1.0 (current):
 http://developer.openstack.org/api-ref-orchestration-v1.html
 """
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
-from libcloud.common.openstack import OpenStackBaseConnection
+from libcloud.common.openstack_heat import OpenStackHeatConnection, \
+    OpenStackHeatResponse
 from libcloud.common.openstack import OpenStackDriverMixin
-from libcloud.common.openstack import OpenStackResponse
 
 __all__ = [
-    'OpenStack_Response',
-    'OpenStackHeatConnection',
+    'AutoScaleResponse',
+    'AutoScaleConnection',
     'OpenStackAutoScaleDriver',
 ]
 
@@ -54,26 +50,16 @@ DEFAULT_API_VERSION = '1.0'
 SCALE_GROUP_RESOURCE_NAME = 'auto_scale_group'
 
 
-class OpenStack_Response(OpenStackResponse):
+class AutoScaleResponse(OpenStackHeatResponse):
     def __init__(self, *args, **kwargs):
         # done because of a circular reference from
         # NodeDriver -> Connection -> Response
         self.node_driver = OpenStackAutoScaleDriver
-        super(OpenStack_Response, self).__init__(*args, **kwargs)
+        super(AutoScaleResponse, self).__init__(*args, **kwargs)
 
 
-class OpenStackHeatConnection(OpenStackBaseConnection):
-    # default config for http://devstack.org/
-    service_type = 'orchestration'
-    service_name = 'heat'
-    service_region = 'RegionOne'
-
-    responseCls = OpenStack_Response
-    accept_format = 'application/json'
-    default_content_type = 'application/json; charset=UTF-8'
-
-    def encode_data(self, data):
-        return json.dumps(data)
+class AutoScaleConnection(OpenStackHeatConnection):
+    responseCls = AutoScaleResponse
 
 
 class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
@@ -83,7 +69,7 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
     api_name = 'openstack'
     name = 'OpenStack'
     website = 'http://openstack.org/'
-    connectionCls = OpenStackHeatConnection
+    connectionCls = AutoScaleConnection
     type = Provider.OPENSTACK
 
     _VALUE_TO_SCALE_ADJUSTMENT_TYPE_MAP = {
@@ -161,7 +147,6 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         :return: The newly created scale group.
         :rtype: :class:`.AutoScaleGroup`
         """
-        # TODO: make this more general so that it waits on desired states.
         def _wait_for_creation(stack_name, stack_id):
             DEFAULT_TIMEOUT = 12000
             # 5 seconds
@@ -170,7 +155,7 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
             end = time.time() + DEFAULT_TIMEOUT
             completed = False
             while time.time() < end and not completed:
-                stack = self._get_stack(stack_name, stack_id)
+                stack = self.connection.get_stack(stack_name, stack_id)
                 stack_status = stack['stack_status']
                 if stack_status not in ['CREATE_COMPLETE', 'CREATE_FAILED']:
                     time.sleep(POLL_INTERVAL)
@@ -187,7 +172,6 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         # TODO: Add support for all parameters
         template = {
             'heat_template_version': '2013-05-23',
-            # TODO: see if stacks can be tagged
             'description': SCALE_GROUP_RESOURCE_NAME,
             'resources': {
                 group_name: {
@@ -219,27 +203,6 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         return self._get_auto_scale_group(group_name, stack_id)
 
     def update_auto_scale_group(self, group, min_size=None, max_size=None):
-        def _wait_for_update(stack_name, stack_id, pre_update_ts):
-            DEFAULT_TIMEOUT = 600
-            POLL_INTERVAL = 5
-
-            end = time.time() + DEFAULT_TIMEOUT
-            completed = False
-            while time.time() < end and not completed:
-                stack = self._get_stack(stack_name, stack_id)
-                stack_status = stack['stack_status']
-                ts_completed = self._iso_to_datetime(
-                    stack.get('updated_time')) > pre_update_ts
-                if (stack_status == 'UPDATE_COMPLETE' and ts_completed) or \
-                        stack_status == 'UPDATE_FAILED':
-                    completed = True
-                else:
-                    time.sleep(POLL_INTERVAL)
-
-            if not completed:
-                raise LibcloudError('Group update did not complete in %s'
-                                    ' seconds' % (DEFAULT_TIMEOUT))
-
         stack_name = group.name
         stack_id = group.id
 
@@ -249,10 +212,11 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         if max_size:
             params['max_size'] = int(max_size)
 
-        template_res = self._get_stack_template(stack_name, stack_id)
+        template_res = self.connection.get_stack_template(stack_name, stack_id)
         template_res['resources'][group.name]['properties'].update(params)
-        pre_update_ts = self._stack_update(stack_name, stack_id, template_res)
-        _wait_for_update(stack_name, stack_id, pre_update_ts)
+        pre_update_ts = self.connection.stack_update(stack_name, stack_id,
+                                                     template_res)
+        self._wait_for_update(stack_name, stack_id, pre_update_ts)
         updated_group = get_new_obj(obj=group, klass=AutoScaleGroup,
                                     attributes={'min_size': min_size,
                                                 'max_size': max_size})
@@ -280,28 +244,7 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         stack_name = group.name
         stack_id = group.id
 
-        def _wait_for_update(stack_name, stack_id, pre_update_ts):
-            DEFAULT_TIMEOUT = 600
-            POLL_INTERVAL = 5
-
-            end = time.time() + DEFAULT_TIMEOUT
-            completed = False
-            while time.time() < end and not completed:
-                stack = self._get_stack(stack_name, stack_id)
-                stack_status = stack['stack_status']
-                ts_completed = self._iso_to_datetime(
-                    stack.get('updated_time')) > pre_update_ts
-                if (stack_status == 'UPDATE_COMPLETE' and ts_completed) or \
-                        stack_status == 'UPDATE_FAILED':
-                    completed = True
-                else:
-                    time.sleep(POLL_INTERVAL)
-
-            if not completed:
-                raise LibcloudError('Policy creation did not complete in %s'
-                                    ' seconds' % (DEFAULT_TIMEOUT))
-
-        template_res = self._get_stack_template(stack_name, stack_id)
+        template_res = self.connection.get_stack_template(stack_name, stack_id)
         template = {
             name: {
                 'type': 'OS::Heat::ScalingPolicy',
@@ -317,13 +260,14 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
 
         template_res['resources'].update(template)
 
-        pre_update_ts = self._stack_update(stack_name, stack_id, template_res)
-        _wait_for_update(stack_name, stack_id, pre_update_ts)
+        pre_update_ts = self.connection.stack_update(stack_name, stack_id,
+                                                     template_res)
+        self._wait_for_update(stack_name, stack_id, pre_update_ts)
         policies = self.list_auto_scale_policies(group)
         return [p for p in policies if p.name == name][0]
 
     def list_auto_scale_policies(self, group):
-        template = self._get_stack_template(group.name, group.id)
+        template = self.connection.get_stack_template(group.name, group.id)
         stack_name = group.name
         stack_id = group.id
         return [self._get_auto_scale_policy(k, stack_name, stack_id)
@@ -331,34 +275,15 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
                 template['resources'][k]['type'] == 'OS::Heat::ScalingPolicy']
 
     def delete_auto_scale_policy(self, policy):
-        def _wait_for_update(stack_name, stack_id, pre_update_ts):
-            DEFAULT_TIMEOUT = 600
-            POLL_INTERVAL = 5
-
-            end = time.time() + DEFAULT_TIMEOUT
-            completed = False
-            while time.time() < end and not completed:
-                stack = self._get_stack(stack_name, stack_id)
-                stack_status = stack['stack_status']
-                ts_completed = self._iso_to_datetime(
-                    stack.get('updated_time')) > pre_update_ts
-                if (stack_status == 'UPDATE_COMPLETE' and ts_completed) or \
-                        stack_status == 'UPDATE_FAILED':
-                    completed = True
-                else:
-                    time.sleep(POLL_INTERVAL)
-
-            if not completed:
-                raise LibcloudError('Policy creation did not complete in %s'
-                                    ' seconds' % (DEFAULT_TIMEOUT))
         stack_name = policy.extra['stack_name']
         stack_id = policy.extra['stack_id']
-        template = self._get_stack_template(stack_name, stack_id)
+        template = self.connection.get_stack_template(stack_name, stack_id)
 
         if policy.name in template['resources']:
             template['resources'].pop(policy.name)
-            pre_update_ts = self._stack_update(stack_name, stack_id, template)
-            _wait_for_update(stack_name, stack_id, pre_update_ts)
+            pre_update_ts = self.connection.stack_update(stack_name, stack_id,
+                                                         template)
+            self._wait_for_update(stack_name, stack_id, pre_update_ts)
 
         return True
 
@@ -370,10 +295,31 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
             {'stack_name': stack_name, 'stack_id': stack_id},
             method='DELETE').success()
 
+    def _wait_for_update(self, stack_name, stack_id, pre_update_ts):
+        DEFAULT_TIMEOUT = 600
+        POLL_INTERVAL = 5
+
+        end = time.time() + DEFAULT_TIMEOUT
+        completed = False
+        while time.time() < end and not completed:
+            stack = self.connection.get_stack(stack_name, stack_id)
+            stack_status = stack['stack_status']
+            ts_completed = iso_to_datetime(
+                stack.get('updated_time')) > pre_update_ts
+            if (stack_status == 'UPDATE_COMPLETE' and ts_completed) or \
+                    stack_status == 'UPDATE_FAILED':
+                completed = True
+            else:
+                time.sleep(POLL_INTERVAL)
+
+        if not completed:
+            raise LibcloudError('Stack update did not complete in %s'
+                                ' seconds' % (DEFAULT_TIMEOUT))
+
     def _get_auto_scale_group(self, stack_name, stack_id):
-        template = self._get_stack_template(stack_name, stack_id)
+        template = self.connection.get_stack_template(stack_name, stack_id)
         # resources is an array of resource dictionaries
-        resources = self._get_stack_resources(stack_name, stack_id)
+        resources = self.connection.get_stack_resources(stack_name, stack_id)
         # exactly one resource with this type
         key = find(
             template['resources'],
@@ -409,9 +355,9 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
                               extra=extra)
 
     def _get_auto_scale_policy(self, name, stack_name, stack_id):
-        template = self._get_stack_template(stack_name, stack_id)
+        template = self.connection.get_stack_template(stack_name, stack_id)
         # resources is an array of dictionaries
-        resources = self._get_stack_resources(stack_name, stack_id)
+        resources = self.connection.get_stack_resources(stack_name, stack_id)
         resource = find(resources['resources'],
                         lambda r: r['resource_type'] ==
                         'OS::Heat::ScalingPolicy' and
@@ -436,41 +382,6 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
                                adjustment_type=adjustment_type,
                                scaling_adjustment=int(scaling_adjustment),
                                driver=self.connection.driver, extra=extra)
-
-    def _get_stack(self, stack_name, stack_id):
-        res = self.connection.request(
-            '/stacks/%(stack_name)s/%(stack_id)s' %
-            {'stack_name': stack_name, 'stack_id': stack_id}).object
-
-        return res['stack']
-
-    def _get_stack_template(self, stack_name, stack_id):
-        return self.connection.request(
-            '/stacks/%(stack_name)s/%(stack_id)s/template' %
-            {'stack_name': stack_name, 'stack_id': stack_id}).object
-
-    def _get_stack_resources(self, stack_name, stack_id):
-        return self.connection.request(
-            '/stacks/%(stack_name)s/%(stack_id)s/resources' %
-            {'stack_name': stack_name, 'stack_id': stack_id}).object
-
-    def _stack_update(self, stack_name, stack_id, template):
-        DEFAULT_TIMEOUT = 600
-        data = {
-            'timeout_mins': str(DEFAULT_TIMEOUT),
-            'files': {},
-            'environment': {},
-            'template': template
-        }
-
-        pre_update_ts = self._iso_to_datetime(
-            self._get_stack(stack_name, stack_id).get('updated_time'))
-
-        self.connection.request(
-            '/stacks/%(stack_name)s/%(stack_id)s' %
-            {'stack_name': stack_name, 'stack_id': stack_id},
-            data=data, method='PUT')
-        return pre_update_ts
 
     def _to_virtual_guest_template(self, **attrs):
         """
@@ -510,22 +421,6 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
                 server_params['security_groups'].append({'name': name})
 
         return server_params
-
-    def _iso_to_datetime(self, isodate):
-        date_formats = ('%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M:%S%z')
-        _isodate = isodate or '1970-01-01T00:00:01Z'
-        date = None
-
-        for date_format in date_formats:
-            try:
-                date = datetime.strptime(_isodate, date_format)
-            except ValueError:
-                pass
-
-            if date:
-                break
-
-        return date
 
     def _ex_connection_class_kwargs(self):
         return self.openstack_connection_kwargs()

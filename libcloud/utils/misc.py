@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
 import os
 import sys
 import binascii
 
 
 __all__ = [
+    'iso_to_datetime',
     'find',
     'get_driver',
     'set_driver',
@@ -32,6 +34,23 @@ __all__ = [
 
     'ReprMixin'
 ]
+
+
+def iso_to_datetime(isodate):
+    date_formats = ('%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M:%S%z')
+    _isodate = isodate or '1970-01-01T00:00:01Z'
+    date = None
+
+    for date_format in date_formats:
+        try:
+            date = datetime.strptime(_isodate, date_format)
+        except ValueError:
+            pass
+
+        if date:
+            break
+
+    return date
 
 
 def find(l, predicate):
