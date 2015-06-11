@@ -100,6 +100,13 @@ class InvalidCredsError(ProviderError):
 InvalidCredsException = InvalidCredsError
 
 
+class ResourceExistsError(LibcloudError):
+    """Exception for the cases where specific resource already
+    exists
+    """
+    pass
+
+
 class LazyList(object):
 
     def __init__(self, get_more, value_dict=None):

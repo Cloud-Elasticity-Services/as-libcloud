@@ -29,7 +29,7 @@ from libcloud.compute.drivers.softlayer import SoftLayerNodeDriver
 SL_REGIONS = [
     'na-usa-east-1', 'na-usa-central-1', 'na-usa-west-1', 'na-usa-west-2',
     'na-can-east-1', 'na-mex-central-1',
-    'eu-deu-west1', 'eu-fra-north-1', 'eu-nld-central-1', 'eu-gbr-south-1',
+    'eu-deu-west-1', 'eu-fra-north-1', 'eu-nld-central-1', 'eu-gbr-south-1',
     'as-hkg-central-1', 'as-jpn-central-1', 'as-sgp-central-1',
     'oc-aus-south-1'
 ]
@@ -79,14 +79,18 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
 
         mask = {
             'scaleGroups': {
-                'terminationPolicy': ''
+                'terminationPolicy': '',
+                'regionalGroup': {
+                    'name': ''
+                },
             }
         }
 
         res = self.connection.request('SoftLayer_Account',
                                       'getScaleGroups', object_mask=mask).\
             object
-        return self._to_autoscale_groups(res)
+        return [g for g in self._to_autoscale_groups(res) if g.region ==
+                self.region_name]
 
     def create_auto_scale_group(
             self, group_name, min_size, max_size, cooldown,
@@ -172,7 +176,10 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
 
         _wait_for_creation(res['id'])
         mask = {
-            'terminationPolicy': ''
+            'terminationPolicy': '',
+            'regionalGroup': {
+                'name': ''
+            },
         }
 
         res = self.connection.request('SoftLayer_Scale_Group', 'getObject',
@@ -484,7 +491,7 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         cooldown = grp['cooldown']
         min_size = grp['minimumMemberCount']
         max_size = grp['maximumMemberCount']
-
+        region = grp['regionalGroup']['name']
         sl_tp = self._value_to_termination_policy(
             grp['terminationPolicy']['keyName'])
         termination_policies = [sl_tp]
@@ -492,13 +499,13 @@ class SoftLayerAutoScaleDriver(AutoScaleDriver):
         extra = {}
         extra['id'] = grp_id
         extra['state'] = grp['status']['keyName']
-        extra['region'] = self.region_name
         extra['regionalGroupId'] = grp['regionalGroupId']
         extra['suspendedFlag'] = grp['suspendedFlag']
         extra['terminationPolicyId'] = grp['terminationPolicyId']
 
         return AutoScaleGroup(id=grp_id, name=name, cooldown=cooldown,
                               min_size=min_size, max_size=max_size,
+                              region=region,
                               termination_policies=termination_policies,
                               driver=self.connection.driver,
                               extra=extra)

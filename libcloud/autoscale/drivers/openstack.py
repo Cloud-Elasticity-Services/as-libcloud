@@ -342,15 +342,14 @@ class OpenStackAutoScaleDriver(AutoScaleDriver, OpenStackDriverMixin):
         cooldown = template['properties']['cooldown']
         min_size = template['properties']['min_size']
         max_size = template['properties']['max_size']
-
+        region = self.connection.service_region
         extra = {}
         extra['state'] = resource['resource_status']
         extra['resource_id'] = resource['logical_resource_id']
-        extra['region'] = self.connection.service_region
 
         return AutoScaleGroup(id=group_id, name=group_name, cooldown=cooldown,
                               min_size=min_size, max_size=max_size,
-                              termination_policies=[],
+                              region=region, termination_policies=[],
                               driver=self.connection.driver,
                               extra=extra)
 

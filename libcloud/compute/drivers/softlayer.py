@@ -509,7 +509,7 @@ class SoftLayerNodeDriver(NodeDriver):
             ]
 
         if 'ex_userdata' in attrs:
-            template['UserData'] = \
+            template['userData'] = \
                 [{'value': base64.b64encode(attrs['ex_userdata'])}]
 
         return newCCI
