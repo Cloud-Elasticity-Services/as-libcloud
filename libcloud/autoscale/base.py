@@ -25,7 +25,7 @@ __all__ = [
 class AutoScaleGroup(object):
     """Base class for auto scale group
     """
-    def __init__(self, id, name, min_size, max_size, cooldown,
+    def __init__(self, id, name, min_size, max_size, cooldown, region,
                  termination_policies, driver, extra=None):
         """
         :param name: name.
@@ -40,6 +40,9 @@ class AutoScaleGroup(object):
         :param cooldown: Group cooldown (in seconds).
         :type cooldown: ``int``
 
+        :param region: Group region.
+        :type region: ``str``
+
         :param termination_policies: Termination policies for this group.
         :type termination_policies: array of values within
                                   :class:`AutoScaleTerminationPolicy`
@@ -49,6 +52,7 @@ class AutoScaleGroup(object):
         self.min_size = min_size
         self.max_size = max_size
         self.cooldown = cooldown
+        self.region = region
         self.termination_policies = termination_policies
         self.driver = driver
 
@@ -56,9 +60,11 @@ class AutoScaleGroup(object):
 
     def __repr__(self):
         return (('<AutoScaleGroup: id=%s, name=%s, min_size=%s, max_size=%s, '
-                 'cooldown=%s, termination_policies=%s, provider=%s>')
+                 'cooldown=%s, region=%s, termination_policies=%s, '
+                 'provider=%s>')
                 % (self.id, self.name, self.min_size, self.max_size,
-                   self.cooldown, self.termination_policies, self.driver.name))
+                   self.cooldown, self.region, self.termination_policies,
+                   self.driver.name))
 
 
 class AutoScalePolicy(object):

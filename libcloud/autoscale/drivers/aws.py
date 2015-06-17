@@ -419,11 +419,11 @@ class AWSAutoScaleDriver(AutoScaleDriver):
                             namespace=AUTOSCALE_NAMESPACE)
         max_size = findtext(element=element, xpath='MaxSize',
                             namespace=AUTOSCALE_NAMESPACE)
+        region = self.region_name
         termination_policies = self._get_termination_policies(element)
         availability_zones = self._get_availability_zones(element)
 
         extra = {}
-        extra['region'] = self.region_name
         extra['balancer_names'] = self._get_balancer_names(element)
         extra['availability_zones'] = availability_zones
         extra['launch_configuration_name'] =\
@@ -432,6 +432,7 @@ class AWSAutoScaleDriver(AutoScaleDriver):
 
         return AutoScaleGroup(id=group_id, name=name, cooldown=int(cooldown),
                               min_size=int(min_size), max_size=int(max_size),
+                              region=region,
                               termination_policies=termination_policies,
                               driver=self.connection.driver, extra=extra)
 
