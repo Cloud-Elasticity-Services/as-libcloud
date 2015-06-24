@@ -10,7 +10,7 @@ Provider                              list key pairs get key pair create key pai
 `CloudSigma (API v2.0)`_              no             no           no              no                            no                          no             
 `CloudStack`_                         yes            yes          yes             yes                           no                          yes            
 `Cloudwatt`_                          yes            yes          yes             yes                           no                          yes            
-`DigitalOcean`_                       yes            no           yes             no                            no                          yes            
+`DigitalOcean`_                       yes            yes          yes             no                            no                          yes            
 `DimensionData`_                      no             no           no              no                            no                          no             
 `Dreamhost`_                          no             no           no              no                            no                          no             
 `Amazon EC2`_                         yes            yes          yes             yes                           no                          yes            
@@ -35,7 +35,7 @@ Provider                              list key pairs get key pair create key pai
 `ElasticHosts (sjc-c)`_               no             no           no              no                            no                          no             
 `Eucalyptus`_                         yes            yes          yes             yes                           no                          yes            
 `Exoscale`_                           yes            yes          yes             yes                           no                          yes            
-`Gandi`_                              no             no           no              no                            no                          no             
+`Gandi`_                              yes            yes          no              yes                           no                          yes            
 `Google Compute Engine`_              no             no           no              no                            no                          no             
 `GoGrid`_                             no             no           no              no                            no                          no             
 `HostVirtual`_                        no             no           no              no                            no                          no             
@@ -69,7 +69,7 @@ Provider                              list key pairs get key pair create key pai
 `Voxel VoxCLOUD`_                     no             no           no              no                            no                          no             
 `vps.net`_                            no             no           no              no                            no                          no             
 `VMware vSphere`_                     no             no           no              no                            no                          no             
-`Vultr`_                              no             no           no              no                            no                          no             
+`Vultr`_                              yes            no           no              no                            no                          no             
 ===================================== ============== ============ =============== ============================= =========================== ===============
 
 .. _`Abiquo`: http://www.abiquo.com/

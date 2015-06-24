@@ -221,14 +221,14 @@ def generate_providers_table(api):
             from libcloud.compute.drivers.cloudsigma import \
                 CloudSigma_2_0_NodeDriver
             cls = CloudSigma_2_0_NodeDriver
-        elif name.lower() == 'digital_ocean':
-            from libcloud.compute.drivers.digitalocean import \
-                DigitalOcean_v2_NodeDriver
-            cls = DigitalOcean_v2_NodeDriver
         elif name.lower() == 'opennebula':
             from libcloud.compute.drivers.opennebula import \
                 OpenNebula_3_8_NodeDriver
             cls = OpenNebula_3_8_NodeDriver
+        elif name.lower() == 'digital_ocean' and api.startswith('compute'):
+            from libcloud.compute.drivers.digitalocean import \
+                DigitalOcean_v2_NodeDriver
+            cls = DigitalOcean_v2_NodeDriver
 
         if name.lower() in IGNORED_PROVIDERS:
             continue

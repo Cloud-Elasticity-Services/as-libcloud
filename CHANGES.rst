@@ -27,6 +27,10 @@ General
   (GITHUB-533, LIBCLOUD-716)
   [Avi Weit]
 
+- Update ``is_valid_ip_address`` function so it also works on Windows.
+  (GITHUB-343, GITHUB-498, LIBCLOUD-601, LIBCLOUD-686)
+  [Nicolas Fraison, Samuel Marks]
+
 Compute
 ~~~~~~~
 
@@ -204,8 +208,21 @@ Compute
   (GITHUB-528)
   [Michael Bennett]
 
-- Add ``ex_get_node`` and ``ex_get_volume`` methods to CloudStack driver
+- Add ``ex_get_node`` and ``ex_get_volume`` methods to CloudStack driver.
   (GITHUB-532)
+  [ZuluPro]
+
+- Update CloudSigma driver so the "unavailable" and "paused" node state is
+  correctly mapped to "error" and "paused" respectively.
+  (GITHUB-517)
+  [Chris O'Brien]
+
+- Add SSH key pair management methods to the Gandi driver.
+  (GITHUB-534)
+  [ZuluPro]
+
+- Add ``ex_get_node`` and ``ex_get_volume`` methods to Gandi driver.
+  (GITHUB-534)
   [ZuluPro]
 
 Storage
@@ -247,6 +264,10 @@ DNS
 - Fix parsing of the record name in the HostVirtual driver.
   (GITHUB-461)
   [Vanč Levstik]
+
+- Add new driver for DigitalOcean DNS service.
+  (GITHUB-505)
+  [Javier Castillo II]
 
 Changes with Apache Libcloud 0.17.0
 -----------------------------------
